@@ -199,8 +199,12 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <Resource Include="Data\Tomsk\Матрица смежности.txt" />
-    <Resource Include="Data\Tomsk\Узлы.txt" />
+    <None Include="Data\Tomsk\Матрица смежности.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Data\Tomsk\Узлы.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Data\TestNetwork\Матрица корреспонденций.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

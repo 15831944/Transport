@@ -12,6 +12,6 @@ namespace Transport.Aca3.ViewModels
         public double Top => Center.Y - Size / 2;
 
         public Color Color { get; set; } = Colors.White;
-        public double Size { get; set; } = 30.0;
+        public double Size { get; set; } = 25.0;
     }
 }
