@@ -1,0 +1,23 @@
+﻿<UserControl x:Class="Transport.Aca.Controls.FilePathControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" x:Name="UserControl">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <TextBox x:Name="TextBox" Grid.Row="0" Grid.Column="0" Margin="3" 
+                 Text="{Binding ElementName=UserControl, Path=Path}" />
+        <Button Content="..."  Grid.Row="0" Grid.Column="1" Margin="3"
+                Width="{Binding RelativeSource={RelativeSource Self}, Path=ActualHeight}" 
+                Command="{Binding ElementName=UserControl, Path=Command}"
+                CommandParameter="{Binding ElementName=UserControl, Path=CommandParameter}"/>
+    </Grid>
+</UserControl>

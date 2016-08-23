@@ -1,0 +1,139 @@
+﻿<UserControl x:Class="Transport.Aca3.Views.DataSourceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Transport.Aca3"
+             xmlns:md="https://github.com/fantasticfiasco/mvvm-dialogs"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300"
+             md:DialogServiceViews.IsRegistered="True"
+             DataContext="{Binding Source={StaticResource Locator}, Path=DataSource}">
+    <Grid>
+        <Border Background="AliceBlue">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Матрица смежности -->
+                <TextBlock Grid.Column="0" Grid.Row="0"
+                           Margin="3" VerticalAlignment="Center"
+                           Text="Матрица смежности" />
+                <Button Grid.Column="1" Grid.Row="0"
+                        Margin="3" Content="Загрузить" Command="{Binding Path=OpenAdjacencyMatrixFileCommand}"/>
+                <Button Grid.Column="2" Grid.Row="0" Margin="3" Content="Очистить"
+                        Command="{Binding Path=ClearAdjacencyMatrixCommand}"/>
+                <Image Grid.Column="3" Grid.Row="0" Height="16" Width="16">
+                    <Image.Style>
+                        <Style TargetType="{x:Type Image}">
+                            <Setter Property="Source" Value="../Icons/cross.png" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Path=IsAdjacencyMatrixCorrect}" Value="true">
+                                    <Setter Property="Source" Value="../Icons/tick.png" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <!-- Массив отправлений -->
+                <TextBlock Grid.Column="0" Grid.Row="1"
+                           Margin="3" VerticalAlignment="Center"
+                           Text="Массив отправлений" />
+                <Button Grid.Column="1" Grid.Row="1"
+                        Margin="3" Content="Загрузить" Command="{Binding Path=OpenDeparturesFileCommand}"/>
+                <Button Grid.Column="2" Grid.Row="1" Margin="3" Content="Очистить"
+                        Command="{Binding Path=ClearDeparturesCommand}"/>
+                <Image Grid.Column="3" Grid.Row="1" Height="16" Width="16">
+                    <Image.Style>
+                        <Style TargetType="{x:Type Image}">
+                            <Setter Property="Source" Value="../Icons/cross.png" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Path=IsDeparturesCorrect}" Value="true">
+                                    <Setter Property="Source" Value="../Icons/tick.png" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <!-- Массив прибытий -->
+                <TextBlock Grid.Column="0" Grid.Row="2"
+                           Margin="3" VerticalAlignment="Center"
+                           Text="Массив прибытий" />
+                <Button Grid.Column="1" Grid.Row="2"
+                        Margin="3" Content="Загрузить" Command="{Binding Path=OpenArrivalsFileCommand}"/>
+                <Button Grid.Column="2" Grid.Row="2"
+                        Margin="3" Content="Очистить"
+                        Command="{Binding Path=ClearArrivalsCommand}"/>
+                <Image Grid.Column="3" Grid.Row="2" Height="16" Width="16">
+                    <Image.Style>
+                        <Style TargetType="{x:Type Image}">
+                            <Setter Property="Source" Value="../Icons/cross.png" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Path=IsArrivalsCorrect}" Value="true">
+                                    <Setter Property="Source" Value="../Icons/tick.png" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <!-- Матрица корреспонденций -->
+                <TextBlock Grid.Column="0" Grid.Row="3"
+                           Margin="3" VerticalAlignment="Center"
+                           Text="Матрица корреспонденций" />
+                <Button Grid.Column="1" Grid.Row="3"
+                        Margin="3" Content="Загрузить" Command="{Binding Path=OpenDemandMatrixFileCommand}"/>
+                <Button Grid.Column="2" Grid.Row="3"
+                        Margin="3" Content="Очистить"
+                        Command="{Binding Path=ClearDemandMatrixCommand}"/>
+                <Image Grid.Column="3" Grid.Row="3" Height="16" Width="16">
+                    <Image.Style>
+                        <Style TargetType="{x:Type Image}">
+                            <Setter Property="Source" Value="../Icons/cross.png" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Path=IsDemandMatrixCorrect}" Value="true">
+                                    <Setter Property="Source" Value="../Icons/tick.png" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <!-- Расположение узлов -->
+                <TextBlock Grid.Column="0" Grid.Row="4"
+                           Margin="3" VerticalAlignment="Center"
+                           Text="Расположение узлов" />
+                <Button Grid.Column="1" Grid.Row="4"
+                        Margin="3" Content="Загрузить" Command="{Binding Path=OpenNodesCoordsFileCommand}"/>
+                <Button Grid.Column="2" Grid.Row="4"
+                        Margin="3" Content="Очистить"
+                        Command="{Binding Path=ClearNodesCoordsCommand}"/>
+                <Image Grid.Column="3" Grid.Row="4" Height="16" Width="16">
+                    <Image.Style>
+                        <Style TargetType="{x:Type Image}">
+                            <Setter Property="Source" Value="../Icons/cross.png" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Path=IsNodesCoordsCorrect}" Value="true">
+                                    <Setter Property="Source" Value="../Icons/tick.png" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,67 @@
+﻿<UserControl x:Class="Transport.Aca.GraphView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:styles="clr-namespace:Transport.Aca.Styles"
+             xmlns:aca="clr-namespace:Transport.Aca"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300"
+             DataContext="{Binding Source={StaticResource Locator}, Path=Graph}">
+    <UserControl.Resources>
+        <Style x:Key="NodeStyle" TargetType="ContentPresenter">
+            <Setter Property="Canvas.Left" Value="{Binding Path=Left, Mode=OneWay}"/>
+            <Setter Property="Canvas.Top" Value="{Binding Path=Top, Mode=OneWay}"/>
+            <Setter Property="Canvas.ZIndex" Value="2"/>
+        </Style>
+        <Style x:Key="EdgeStyle" TargetType="ContentPresenter">
+            <Setter Property="Canvas.ZIndex" Value="1"/>
+        </Style>
+
+        <styles:ShapesStyleSelector x:Key="ShapesStyleSelector" 
+                                   NodeStyle="{StaticResource NodeStyle}" 
+                                   EdgeStyle="{StaticResource EdgeStyle}" />
+    </UserControl.Resources>
+    <Grid Background="White">
+        <xctk:Zoombox AutoWrapContentWithViewbox="False" ZoomOn="View" >
+            <Grid>
+                <ItemsControl ItemsSource="{Binding Path=Shapes}"
+                          ItemContainerStyleSelector="{StaticResource ShapesStyleSelector}">
+                    <ItemsControl.Resources>
+                        <DataTemplate DataType="{x:Type aca:EdgeViewModel}">
+                            <Line X1="{Binding Path=Point1.X}" 
+                              Y1="{Binding Path=Point1.Y}"
+                              X2="{Binding Path=Point2.X}"
+                              Y2="{Binding Path=Point2.Y}"
+                              StrokeThickness="{Binding Thickness}">
+                                <Line.Stroke>
+                                    <SolidColorBrush Color="{Binding Color}" />
+                                </Line.Stroke>
+                            </Line>
+                        </DataTemplate>
+                        <DataTemplate DataType="{x:Type aca:NodeViewModel}">
+                            <Grid Width="{Binding Size}" 
+                              Height="{Binding Size}"
+                              Background="Transparent">
+                                <Ellipse Stroke="Black">
+                                    <Ellipse.Fill>
+                                        <SolidColorBrush Color="{Binding Path=Color}" />
+                                    </Ellipse.Fill>
+                                </Ellipse>
+                                <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.Resources>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <!--<Image Source="" />-->
+            </Grid>
+        </xctk:Zoombox>
+    </Grid>
+</UserControl>
+

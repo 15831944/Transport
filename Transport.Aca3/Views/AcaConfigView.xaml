@@ -1,0 +1,88 @@
+﻿<UserControl x:Class="Transport.Aca3.Views.AcaConfigView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Transport.Aca3"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300"
+             DataContext="{Binding Source={StaticResource Locator}, Path=AcaConfig}">
+    <Grid Background="AntiqueWhite">
+        <Grid.Resources>
+            <DataTemplate DataType="{x:Type ValidationError}">
+                <TextBlock FontStyle="Italic" Foreground="Red" HorizontalAlignment="Right" Margin="0,1" Text="{Binding Path=ErrorContent}" />
+            </DataTemplate>
+        </Grid.Resources>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="15" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="15" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="15" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="15" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="15" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="15" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="15" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="15" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Column="0" Grid.Row="0" Text="Количество муравьев в колонии:" VerticalAlignment="Center"/>
+        <TextBox x:Name="AntsInSubcolonyCountTextBox" Grid.Column="1" Grid.Row="0" 
+                         Text="{Binding Path=AntsInSubcolonyCount, ValidatesOnDataErrors=True}" Margin="3" />
+        <ContentPresenter Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right"
+                                  Content="{Binding ElementName=AntsInSubcolonyCountTextBox, Path=(Validation.Errors).CurrentItem}" />
+
+        <TextBlock Grid.Column="0" Grid.Row="2" Text="Количество колоний:" VerticalAlignment="Center" />
+        <TextBox x:Name="SubcolonysCountTextBox" Grid.Column="1" Grid.Row="2" 
+                         Text="{Binding Path=SubcolonysCount, ValidatesOnDataErrors=True}" Margin="3" />
+        <ContentPresenter Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right"
+                                  Content="{Binding ElementName=SubcolonysCountTextBox, Path=(Validation.Errors).CurrentItem}" />
+
+        <TextBlock Grid.Column="0" Grid.Row="4" Text="Значимость феромона (Alpha):" VerticalAlignment="Center" />
+        <TextBox x:Name="AlphaTextBox" Grid.Column="1" Grid.Row="4" 
+                         Text="{Binding Path=Alpha, ValidatesOnDataErrors=True}" Margin="3" />
+        <ContentPresenter Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right"
+                                  Content="{Binding ElementName=AlphaTextBox, Path=(Validation.Errors).CurrentItem}" />
+
+        <TextBlock Grid.Column="0" Grid.Row="6" Text="Значимость достижимости (Beta):" VerticalAlignment="Center" />
+        <TextBox x:Name="BetaTextBox" Grid.Column="1" Grid.Row="6" 
+                         Text="{Binding Path=Beta, ValidatesOnDataErrors=True}" Margin="3" />
+        <ContentPresenter Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right"
+                                  Content="{Binding ElementName=BetaTextBox, Path=(Validation.Errors).CurrentItem}" />
+
+        <TextBlock Grid.Column="0" Grid.Row="8" Text="Q:" VerticalAlignment="Center" />
+        <TextBox x:Name="QTextBox"  Grid.Column="1" Grid.Row="8" 
+                         Text="{Binding Path=Q, ValidatesOnDataErrors=True}" Margin="3" />
+        <ContentPresenter Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right"
+                                  Content="{Binding ElementName=QTextBox, Path=(Validation.Errors).CurrentItem}" />
+
+        <TextBlock Grid.Column="0" Grid.Row="10" Text="Коэффициент испарения феромона:" VerticalAlignment="Center" />
+        <TextBox x:Name="EvoporationSpeedTextBox" Grid.Column="1" Grid.Row="10" 
+                         Text="{Binding Path=EvoporationSpeed, ValidatesOnDataErrors=True}" Margin="3"/>
+        <ContentPresenter Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right"
+                                  Content="{Binding ElementName=EvoporationSpeedTextBox, Path=(Validation.Errors).CurrentItem}" />
+
+        <TextBlock Grid.Column="0" Grid.Row="12" Text="Пункт отправления:" VerticalAlignment="Center" />
+        <TextBox x:Name="OriginTextBox" Grid.Column="1" Grid.Row="12" 
+                         Text="{Binding Path=Origin, ValidatesOnDataErrors=True}" Margin="3"/>
+        <ContentPresenter Grid.Row="13" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right"
+                                  Content="{Binding ElementName=OriginTextBox, Path=(Validation.Errors).CurrentItem}" />
+
+        <TextBlock Grid.Column="0" Grid.Row="14" Text="Пункт назначения:" VerticalAlignment="Center" />
+        <TextBox x:Name="DestinationTextBox" Grid.Column="1" Grid.Row="14" 
+                         Text="{Binding Path=Destination, ValidatesOnDataErrors=True}" Margin="3"/>
+        <ContentPresenter Grid.Row="15" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right"
+                                  Content="{Binding ElementName=DestinationTextBox, Path=(Validation.Errors).CurrentItem}" />
+
+    </Grid>
+</UserControl>
