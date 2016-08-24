@@ -31,6 +31,7 @@ namespace Transport.Aca3
 
             // Services
             unityContainer.RegisterType<IDialogService>(new InjectionFactory(c => new DialogService()));
+            unityContainer.RegisterType(typeof(IDataAccessService), typeof(DataAccessService), new ContainerControlledLifetimeManager());
 
         }
 

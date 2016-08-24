@@ -31,9 +31,9 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <GroupBox Header="Исходные данные" Grid.Row="0" Margin="5">
+            <!--<GroupBox Header="Исходные данные" Grid.Row="0" Margin="5">
                 <views:DataSourceView />
-            </GroupBox>
+            </GroupBox>-->
 
             <GroupBox Header="Настройки алгоритма" Grid.Row="1" Margin="5">
                 <views:AcaConfigView />

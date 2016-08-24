@@ -3,84 +3,49 @@ using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.CommandWpf;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Linq;
 using System.Windows;
-using System.Windows.Documents;
 using System.Windows.Input;
-using Transport.Aca3.Helpers;
-using Transport.Aca3.Models;
+using Transport.Aca3.Services;
 
 namespace Transport.Aca3.ViewModels
 {
     public class MapViewModel : ViewModelBase
     {
-        private readonly Lazy<RelayCommand> _buildMap;
-        private readonly DataSource _dataSource;
+        private readonly IDataAccessService _dataAccessService;
 
-        public MapViewModel(DataSource dataSource)
+        public MapViewModel(IDataAccessService dataAccessService)
         {
-            _dataSource = dataSource;
+            _dataAccessService = dataAccessService;
             _buildMap = new Lazy<RelayCommand>(() => new RelayCommand(InvokeBuildMap));
         }
 
-        private void ZoomCount(out double zoom, out double deltaX, out double deltaY)
+
+        #region Properties
+
+        public ObservableCollection<VisualItemViewModel> VisualItems { get; } =
+            new ObservableCollection<VisualItemViewModel>();
+
+        private bool _isItemsLoaded;
+
+        public bool IsItemsLoaded
         {
-            const double dist = 3000.0; // базовое расстояние между узлами
-
-            var minX = double.MaxValue;
-            var maxX = double.MinValue;
-            var minY = double.MaxValue;
-            var maxY = double.MinValue;
-
-            foreach (var nodesCoord in _dataSource.NodesCoords)
-            {
-                if (nodesCoord.X < minX) minX = nodesCoord.X;
-                if (nodesCoord.X > maxX) maxX = nodesCoord.X;
-                if (nodesCoord.Y < minY) minY = nodesCoord.Y;
-                if (nodesCoord.Y > maxY) maxY = nodesCoord.Y;
-            }
-
-
-            zoom = dist / (maxX - minX);
-            deltaX = minX;
-            deltaY = minY;
+            get { return _isItemsLoaded; }
+            set { Set(ref _isItemsLoaded, value); }
         }
+
+        #endregion
+
+        #region Commands
+
+        private readonly Lazy<RelayCommand> _buildMap;
+        public ICommand BuildMapCommand => _buildMap.Value;
 
         private void InvokeBuildMap()
         {
-            double zoom, deltaX, deltaY;
-            ZoomCount(out zoom, out deltaX, out deltaY);
-
-            var nodes = new List<NodeViewModel>();
-
-            for (var i = 0; i < _dataSource.NodesCoords.Count; i++)
-            {
-                var nodeCoords = _dataSource.NodesCoords[i];
-                var node = new NodeViewModel
-                {
-                    Center = new Point((nodeCoords.Y - deltaY) * zoom, -(nodeCoords.X - deltaX) * zoom),
-                    Name = i.ToString()
-                };
-
-                nodes.Add(node);
-            }
-
-            var edges = new List<EdgeViewModel>();
-
-            for (var i = 0; i < _dataSource.AdjacencyMatrix.GetLength(0); i++)
-            {
-                for (var j = 0; j < _dataSource.AdjacencyMatrix.GetLength(0); j++)
-                {
-                    if (Math.Abs(_dataSource.AdjacencyMatrix[i, j]) < Constants.Tolerance) continue;
-                    var edge = new EdgeViewModel
-                    {
-                        Point1 = nodes[i].Center,
-                        Point2 = nodes[j].Center
-                    };
-
-                    edges.Add(edge);
-                }
-            }
+            var nodes = _dataAccessService.GetGraphNodes();
+            GeoPositionToScreenPosition(nodes);
+            var edges = nodes.SelectMany(node => node.Edges).ToList();
 
             nodes.ForEach(n => VisualItems.Add(n));
             edges.ForEach(e => VisualItems.Add(e));
@@ -88,16 +53,43 @@ namespace Transport.Aca3.ViewModels
             IsItemsLoaded = true;
         }
 
-        public ICommand BuildMapCommand => _buildMap.Value;
+        #endregion
 
-        public ObservableCollection<VisualItemViewModel> VisualItems { get; } =
-            new ObservableCollection<VisualItemViewModel>();
+        #region Helpers
 
-        private bool _isItemsLoaded;
-        public bool IsItemsLoaded
+        private static void GeoPositionToScreenPosition(List<NodeViewModel> nodes)
         {
-            get { return _isItemsLoaded; }
-            set { Set(ref _isItemsLoaded, value); }
+            var maxLat = 0.0;
+            var minLon = double.MaxValue;
+            var minDist = double.MaxValue;
+
+            foreach (var node in nodes)
+            {
+                if (node.Lat > Math.Abs(maxLat)) maxLat = Math.Abs(node.Lat);
+                if (node.Lon < Math.Abs(minLon)) minLon = Math.Abs(node.Lon);
+
+                foreach (var edge in node.Edges)
+                {
+                    var dist = LineLenght(edge.Source.Lon, edge.Dest.Lon, edge.Source.Lat, edge.Dest.Lat);
+                    if (dist < minDist) minDist = dist;
+                }
+            }
+
+            const double baseMinDest = 15.0;
+            var zoom = baseMinDest / minDist;
+
+            foreach (var node in nodes)
+            {
+                node.Center = new Point((node.Lon - minLon) * zoom, (-node.Lat + maxLat) * zoom);
+            }
         }
+
+        private static double LineLenght(double x1, double x2, double y1, double y2)
+        {
+            return Math.Sqrt(Math.Pow(x2 - x1, 2) + Math.Pow(y2 - y1, 2));
+        }
+
+        #endregion
+
     }
 }

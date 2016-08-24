@@ -32,27 +32,27 @@
     </UserControl.DataContext>
     <Grid Background="White">
         <xctk:Zoombox AutoWrapContentWithViewbox="False" ZoomOn="View">
-            <ItemsControl ItemsSource="{Binding VisualItems}">
+            <ItemsControl ItemsSource="{Binding Path=VisualItems}">
                 <ItemsControl.Resources>
                     <DataTemplate DataType="{x:Type aca:EdgeViewModel}">
-                        <Line X1="{Binding Point1.X}" 
-						Y1="{Binding Point1.Y}"
-						X2="{Binding Point2.X}"
-						Y2="{Binding Point2.Y}"
-						StrokeThickness="{Binding Thickness}">
+                        <Line X1="{Binding Path=SourcePoint.X}" 
+						Y1="{Binding Path=SourcePoint.Y}"
+						X2="{Binding Path=DestPoint.X}"
+						Y2="{Binding Path=DestPoint.Y}"
+						StrokeThickness="{Binding Path=Thickness}">
                             <Line.Stroke>
-                                <SolidColorBrush Color="{Binding Color}" />
+                                <SolidColorBrush Color="{Binding Path=Color}" />
                             </Line.Stroke>
                         </Line>
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type aca:NodeViewModel}">
-                        <Grid Width="{Binding Size}" Height="{Binding Size}" Background="Transparent">
+                        <Grid Width="{Binding Size}" Height="{Binding Path=Size}" Background="Transparent">
                             <Ellipse Stroke="Black">
                                 <Ellipse.Fill>
-                                    <SolidColorBrush Color="{Binding Color}" />
+                                    <SolidColorBrush Color="{Binding Path=Color}" />
                                 </Ellipse.Fill>
                             </Ellipse>
-                            <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Path=Id}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.Resources>
