@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using Transport.Aca3.Services;
 
 namespace Transport.Aca3.ViewModels
@@ -18,6 +19,10 @@ namespace Transport.Aca3.ViewModels
         {
             _dataAccessService = dataAccessService;
             _buildMap = new Lazy<RelayCommand>(() => new RelayCommand(InvokeBuildMap));
+        }
+
+        public void ShowPath(PathViewModel path)
+        {
         }
 
 

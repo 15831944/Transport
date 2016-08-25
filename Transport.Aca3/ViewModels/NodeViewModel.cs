@@ -19,8 +19,14 @@ namespace Transport.Aca3.ViewModels
         public Point Center { get; set; }
         public double Left => Center.X - Size / 2;
         public double Top => Center.Y - Size / 2;
+        
+        private Color _color = Colors.White;
+        public Color Color
+        {
+            get { return _color; }
+            set { Set(ref _color, value); }
+        }
 
-        public Color Color { get; set; } = Colors.White;
         public double Size { get; set; } = 25.0;
     }
 }

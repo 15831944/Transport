@@ -141,6 +141,7 @@
     <Compile Include="Services\DataLoaderService.cs" />
     <Compile Include="Services\DataAccessService.cs" />
     <Compile Include="Services\IDataAccessService.cs" />
+    <Compile Include="ViewModels\PathViewModel.cs" />
     <Compile Include="VisualItemStyleSelector.cs" />
     <Compile Include="UnityContainerBootstrapper.cs" />
     <Compile Include="ViewModelLocator.cs" />
