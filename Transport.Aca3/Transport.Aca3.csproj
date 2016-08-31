@@ -141,7 +141,11 @@
     <Compile Include="Services\DataLoaderService.cs" />
     <Compile Include="Services\DataAccessService.cs" />
     <Compile Include="Services\IDataAccessService.cs" />
+    <Compile Include="ViewModels\PathlistViewModel.cs" />
     <Compile Include="ViewModels\PathViewModel.cs" />
+    <Compile Include="Views\PathListView.xaml.cs">
+      <DependentUpon>PathListView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="VisualItemStyleSelector.cs" />
     <Compile Include="UnityContainerBootstrapper.cs" />
     <Compile Include="ViewModelLocator.cs" />
@@ -189,6 +193,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\MapView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\PathListView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

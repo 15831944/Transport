@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 using Transport.Aca3.Services;
 
 namespace Transport.Aca3.ViewModels

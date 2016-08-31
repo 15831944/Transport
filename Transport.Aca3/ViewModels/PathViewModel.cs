@@ -121,6 +121,9 @@ namespace Transport.Aca3.ViewModels
 
         #region Properties
 
+        public NodeViewModel Origin => Nodes.FirstOrDefault();
+        public NodeViewModel Destintaion => Nodes.LastOrDefault();
+
         private Color _color;
         public Color Color
         {

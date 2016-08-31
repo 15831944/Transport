@@ -42,6 +42,10 @@
             <GroupBox Header="Ограничения" Grid.Row="2" Margin="5">
                 <views:AcaContrainsView  />
             </GroupBox>
+            
+            <GroupBox Header="Маршруты" Grid.Row="3" Margin="5">
+                <views:PathListView />
+            </GroupBox>
 
             <Button Grid.Row="4" Margin="10" Command="{Binding Path=StartAlgorithmCommand}">
                 <TextBlock Text="Запустить" FontSize="24" />

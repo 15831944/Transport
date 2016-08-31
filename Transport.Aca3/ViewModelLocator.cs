@@ -36,6 +36,8 @@ namespace Transport.Aca3
 
         public MapViewModel Map => ServiceLocator.Current.GetInstance<MapViewModel>();
 
+        public PathlistViewModel Pathlist => ServiceLocator.Current.GetInstance<PathlistViewModel>();
+
         public static void Cleanup()
         {
             // TODO Clear the ViewModels
