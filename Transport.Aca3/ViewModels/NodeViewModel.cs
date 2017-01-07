@@ -16,17 +16,11 @@ namespace Transport.Aca3.ViewModels
         public List<EdgeViewModel> Edges => _edges ?? (_edges = new List<EdgeViewModel>());
         public List<NodeViewModel> AdjacenNodes => Edges.Select(e => e.Dest).ToList();
 
-        public Point Center { get; set; }
-        public double Left => Center.X - Size / 2;
-        public double Top => Center.Y - Size / 2;
-        
         private Color _color = Colors.White;
         public Color Color
         {
             get { return _color; }
             set { Set(ref _color, value); }
         }
-
-        public double Size { get; set; } = 25.0;
     }
 }

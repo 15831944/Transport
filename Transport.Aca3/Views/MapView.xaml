@@ -3,85 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Transport.Aca3.Views"
-             xmlns:aca="clr-namespace:Transport.Aca3.ViewModels"
-             xmlns:aca3="clr-namespace:Transport.Aca3"
-             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity" 
-             xmlns:custom="http://www.galasoft.ch/mvvmlight"
-             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              x:Class="Transport.Aca3.Views.MapView"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300"
-             >
-    <UserControl.Resources>
-        <Style x:Key="NodeStyle" TargetType="{x:Type ContentPresenter}">
-            <Setter Property="Canvas.Left" Value="{Binding Left, Mode=OneWay}"/>
-            <Setter Property="Canvas.Top" Value="{Binding Top, Mode=OneWay}"/>
-            <Setter Property="Panel.ZIndex" Value="2"/>
-        </Style>
-        <Style x:Key="EdgeStyle" TargetType="{x:Type ContentPresenter}">
-            <Setter Property="Panel.ZIndex" Value="1"/>
-        </Style>
-
-        <aca3:VisualItemStyleSelector x:Key="VisualItemStyleSelector" 
-                                   NodeStyle="{StaticResource NodeStyle}" 
-                                   EdgeStyle="{StaticResource EdgeStyle}" />
-    </UserControl.Resources>
+             d:DesignHeight="300" d:DesignWidth="300">
     <UserControl.DataContext>
         <Binding Path="Map" Source="{StaticResource Locator}"/>
     </UserControl.DataContext>
     <Grid Background="White">
-        <xctk:Zoombox AutoWrapContentWithViewbox="False" ZoomOn="View">
-            <ItemsControl ItemsSource="{Binding Path=VisualItems}">
-                <ItemsControl.Resources>
-                    <DataTemplate DataType="{x:Type aca:EdgeViewModel}">
-                        <Line X1="{Binding Path=SourcePoint.X}" 
-						Y1="{Binding Path=SourcePoint.Y}"
-						X2="{Binding Path=DestPoint.X}"
-						Y2="{Binding Path=DestPoint.Y}"
-						StrokeThickness="{Binding Path=Thickness}">
-                            <Line.Stroke>
-                                <SolidColorBrush Color="{Binding Path=Color}" />
-                            </Line.Stroke>
-                        </Line>
-                    </DataTemplate>
-                    <DataTemplate DataType="{x:Type aca:NodeViewModel}">
-                        <Grid Width="{Binding Size}" Height="{Binding Path=Size}" Background="Transparent">
-                            <Ellipse Stroke="Black">
-                                <Ellipse.Fill>
-                                    <SolidColorBrush Color="{Binding Path=Color}" />
-                                </Ellipse.Fill>
-                            </Ellipse>
-                            <TextBlock Text="{Binding Path=Id}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Grid>
-                    </DataTemplate>
-                </ItemsControl.Resources>
-                <ItemsControl.ItemContainerStyleSelector>
-                    <StaticResource ResourceKey="VisualItemStyleSelector"/>
-                </ItemsControl.ItemContainerStyleSelector>
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <Canvas />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-            </ItemsControl>
-        </xctk:Zoombox>
-        <Button Command="{Binding BuildMapCommand}" Margin="3">
-            <Button.Style>
-                <Style TargetType="{x:Type Button}">
-                    <Setter Property="VerticalAlignment" Value="Center" />
-                    <Setter Property="HorizontalAlignment" Value="Center" />
-                    <Setter Property="Content" Value="Построить" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsItemsLoaded}" Value="True">
-                            <Setter Property="VerticalAlignment" Value="Bottom" />
-                            <Setter Property="HorizontalAlignment" Value="Left" />
-                            <Setter Property="Content" Value="Обновить" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
-        </Button>
-        <!--<Image Source="" />-->
+        <ContentControl Content="{Binding Path=WebBrowser}" />
     </Grid>
 </UserControl>

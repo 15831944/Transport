@@ -12,8 +12,5 @@ namespace Transport.Aca3.ViewModels
 
         public Color Color { get; set; } = Colors.Black;
         public double Thickness { get; set; } = 1.0;
-
-        public Point SourcePoint => Source.Center;
-        public Point DestPoint => Dest.Center;
     }
 }

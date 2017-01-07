@@ -1,0 +1,1704 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=11" />
+    <style type="text/css">
+        html {
+            height: 100%;
+        }
+
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            height: 100%;
+        }
+
+        #circle {
+            border: solid 1px #000000;
+            position: relative;
+            background-color: #FFFFFF;
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            cursor: default;
+            position: absolute;
+
+        }
+
+        #text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #000000;
+        }
+    </style>
+    <title>Google Map</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCVzX3KtIndMX3IbBSQciU60c3PRxDJSjo&language=ru"></script>
+</head>
+<!--onload="InitMap();"-->
+<body>
+    <div id="map"></div>
+</body>
+</html>
+
+<!-- Old -->
+<script type="text/javascript"> 
+    // Текущий размер массива icons, содержащего ссылки на отображаемые на карте объекты (маркеры объектов).
+    var markerCount = 0;
+    // Массив, содержащий ссылки на отображаемые на карте объекты (маркеры объектов).
+    var icons = [];
+    // Текущий размер массива tracks, содержащего ссылки на отображаемые на карте маршруты.
+    var trackCount = 0;
+    // Массив, содержащий ссылки на отображаемые маршруты.
+    var tracks = [];
+    // Текущий размер массива tracks, содержащего ссылки на отображаемые на карте маршруты.
+    var routeCount = 0;
+    // Массив, содержащий ссылки на отображаемые маршруты.
+    var routes = [];
+    // Текущий размер массива zones, содержащего ссылки на отображаемые на карте зоны.
+    var zoneCount = 0;
+    // Массив, содержащий ссылки на отображаемые на карте зоны.
+    var zones = [];
+    // Текущий размер массива points, содержащего ссылки на отображаемые на карте "Точки интереса".
+    var pointCount = 0;
+    // Массив, содержащий ссылки на отображаемые на карте Точки интереса".
+    var points = [];
+    // Маркер, обеспечивающий анимацию заданного маршрута.
+    var AnimateMarker;
+    // Показывать данные абонента рядом с его меткой на карте.
+    var showInfoLabelOnMap = 2;
+    // Размер метки абонента на карте (0 - 16x16; 1 - 24x24).
+    var mapIconFormat = 0;
+    // Объект, представляющий контур выделяемой области.
+    var ConturObject = null;
+    // Класс, предоставляющий функциональность рисования на карте.
+    var drawingManager;
+    // Редактируемая зона.
+    var edit_zone = null;
+    // Создаваемая зона.
+    var new_zone = null;
+    // Признак "Идёт создание новой зоны".
+    var creatingNewZone = false;
+    // Признак "Идёт создание новой точки интереса".
+    var creatingNewPoint = false;
+    // Класс, представляющий создаваемую точку интереса, или null.
+    var newPointOfInterest = null;
+    // Класс, представляющий точку выбора координат радиоабонента на карте, или null.
+    var setCoordinatesPoint = null;
+    // Редактируемый  маршрут.
+    var edit_route = null;
+    // Создаваемая зона.
+    var new_route = null;
+    // Признак "Идёт создание нового маршрута".
+    var creatingNewRoute = false;
+    // Слой, ссылка на карту покрытия
+    var coverageMap = null;
+    // Поиск адресов
+    var placesService;
+    // Идентификатор объекта, который должен быть всегда наверху, либо 0, если такой объект не задан.
+    var ObjectIdOnTop = 0;
+
+    var geocoder = null;
+    var abonentClick = false;
+
+    function CanvasProjectionOverlay() { }
+    CanvasProjectionOverlay.prototype = new google.maps.OverlayView();
+    CanvasProjectionOverlay.prototype.constructor = CanvasProjectionOverlay;
+    CanvasProjectionOverlay.prototype.onAdd = function () { };
+    CanvasProjectionOverlay.prototype.draw = function () { };
+    CanvasProjectionOverlay.prototype.onRemove = function () { };
+
+    var canvasProjectionOverlay = null;
+
+    if (!google.maps.Polygon.prototype.getBounds) {
+        google.maps.Polygon.prototype.getBounds = function (latLng) {
+            var bounds = new google.maps.LatLngBounds();
+            var paths = this.getPaths();
+            var path;
+            for (p = 0; p < paths.getLength() ; p++) {
+                path = paths.getAt(p);
+                for (i = 0; i < path.getLength() ; i++) {
+                    bounds.extend(path.getAt(i));
+                }
+            }
+            return bounds;
+        };
+    }
+
+    // Установить фокус на HTML-страницу.
+    function SetFocus() {
+        try {
+            window.focus();
+        } catch (e) {
+        }
+    }
+
+    // Действия при выгрузке страницы: сохранение параметров карты и её выгрузка.
+    function unload() {
+        for (var i = 0; i < markerCount; i++) {
+            icons[i][0] = -1;
+        }
+        markerCount = 0;
+        if (map != null) {
+            var center = map.getCenter();
+            var zoom = map.getZoom();
+            window.external.SaveGoogleMapParameters(center.lat(), center.lng(), zoom);
+            map = null;
+        }
+    }
+
+    // Проверка, удалось ли создать карту.
+    function CheckMap() {
+        return map != null;
+    }
+
+    //
+    function SetMapSettings(showInfoLabelOnMapParam, mapIconFormatParam) {
+        showInfoLabelOnMap = showInfoLabelOnMapParam;
+        mapIconFormat = mapIconFormatParam;
+    }
+
+    function KeyDown(e) {
+        if (e.keyCode == 112)
+            window.external.F1_Click();
+    }
+
+    function SetObjectIdOnTop(objectIdOnTop) {
+        ObjectIdOnTop = objectIdOnTop;
+    }
+
+    // Реакция на щелчок мыши на карту.
+    // Если создаётся новая точка интереса, она отображается на карте в месте щелчка.
+    // Если карта в режиме задания координат радиоабонента, координаты щелчка передаются наружу.
+    function getCoordinate(event) {
+        if (newPointOfInterest) {
+            if (!creatingNewPoint) {
+                creatingNewPoint = true;
+                newPointOfInterest.point_ = event.latLng;
+                newPointOfInterest.latitude_ = event.latLng.lat();
+                newPointOfInterest.longitude_ = event.latLng.lng();
+            }
+            newPointOfInterest.setCoordinates(event.latLng);
+        }
+        if (setCoordinatesPoint) {
+            setCoordinatesPoint.setCoordinates(event.latLng);
+            window.external.SetCoordinates(event.latLng.lat(), event.latLng.lng());
+        }
+        //placesService.search({ location: event.latLng,  types: ['establishment', 'route'], radius: 25 }, callbackSearch);
+        //placesService.textSearch({ location: event.latLng, radius: 25, query: 'фирма'}, callbackSearch);
+    }
+
+    function getPlaceAddress(event) {
+        if (abonentClick) {
+            abonentClick = false;
+            return;
+        }
+
+        point = canvasProjectionOverlay.getProjection().fromLatLngToContainerPixel(event.latLng);
+
+        window.external.OnGetPlaceAddress(event.latLng.lat(), event.latLng.lng(), point.x, point.y);
+    }
+
+    function callbackSearch(results, status) {
+        if (status == google.maps.places.PlacesServiceStatus.OK) {
+            for (var i = 0; i < results.length; i++) {
+                var types = "";
+                for (var j = 0; j < results[i].types.length; j++) {
+                    if (j > 0)
+                        types = types + " ; ";
+                    types = types + results[i].types[j];
+                }
+                placesService.getDetails({ reference: results[i].reference }, callbackDetailSearch);
+            }
+        }
+    }
+
+    function callbackDetailSearch(result, status) {
+        //alert(status);
+        //alert(results.length);
+        if (status == google.maps.places.PlacesServiceStatus.OK) {
+            var types = "";
+            for (var j = 0; j < result.types.length; j++) {
+                if (j > 0)
+                    types = types + " ; ";
+                types = types + result.types[j];
+            }
+
+            alert(result.name + " - " + result.formatted_address + " => " + types);
+        }
+    }
+
+    // Поиск заданного объекта на карте и установка центра карты
+    // месте, где находится найденный объект.
+    function FindObject(objectId) {
+        if (map != null) {
+            for (var i = 0; i < markerCount; i++) {
+                var marker = icons[i][1];
+                if (icons[i][0] == objectId) {
+                    marker.bringToFront();
+                    map.setCenter(marker.point_);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Проверка - добавлен ли объект на карту.
+    function CheckObject(objectId) {
+        if (map != null) {
+            for (var i = 0; i < markerCount; i++) {
+                if (icons[i][0] == objectId) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Центрирование карты по заданным широте и долготе.
+    function CenterMap(gpsX, gpsY) {
+        if (map != null)
+            map.setCenter(new google.maps.LatLng(gpsX, gpsY));
+    }
+
+    // Изменение цвета фонового прямоугольника.
+    function ChangeBackColor(objectId, color) {
+        for (var i = 0; i < markerCount; i++) {
+            if (icons[i][0] == objectId) {
+                icons[i][1].setColor(color);
+                break;
+            }
+        }
+    }
+
+    // Изменение цвета области подсказки абонента.
+    function ChangeNoteColor(objectId, color) {
+        for (var i = 0; i < markerCount; i++) {
+            if (icons[i][0] == objectId) {
+                icons[i][1].setNoteColor(color);
+                break;
+            }
+        }
+    }
+
+    // Установка для объекта на карте нового местоположения.
+    function SetCoordinates(objectId, latitude, longitude) {
+        for (var i = 0; i < markerCount; i++) {
+            if (icons[i][0] == objectId) {
+                var point = new google.maps.LatLng(latitude, longitude);
+                icons[i][1].setCoordinates(point);
+                break;
+            }
+        }
+    }
+
+    // Установка текста подсказки для объекта на карте.
+    function SetTitle(objectId, title1, title2) {
+        for (var i = 0; i < markerCount; i++) {
+            if (icons[i][0] == objectId) {
+                icons[i][1].setTitle(title1, title2);
+                break;
+            }
+        }
+    }
+
+    // Установка картинки для объекта на карте.
+    function SetIcon(objectId, icon) {
+        for (var i = 0; i < markerCount; i++) {
+            if (icons[i][0] == objectId) {
+                icons[i][1].setIcon(icon);
+                break;
+            }
+        }
+    }
+
+    // Удаление объекта с карты.
+    function DelMarker(objectId) {
+        for (var i = 0; i < markerCount; i++) {
+            if (icons[i][0] == objectId) {
+                icons[i][0] = -1;
+                icons[i][1].setMap(null);
+                break;
+            }
+        }
+    }
+
+    var emergencyMarker;
+    // Размещение на карте объекта, представляющего тревожную ситуацию.
+    function SetEmergencyMarker(objectId, icon, title1, title2, baseColor, noteColor, latitude, longitude) {
+        if (emergencyMarker != null)
+            emergencyMarker.setMap(null);
+        var point = new google.maps.LatLng(latitude, longitude);
+        emergencyMarker = new Node(objectId, point, icon, title1, title2, baseColor, noteColor, map, true);
+    }
+
+    // Установка для объекта в состоянии тревожной ситуации на карте нового местоположения.
+    function SetEmergencyCoordinates(latitude, longitude) {
+        if (emergencyMarker != null) {
+            var point = new google.maps.LatLng(latitude, longitude);
+            emergencyMarker.setCoordinates(point);
+            map.setCenter(emergencyMarker.point_);
+        }
+    }
+
+    // Установка для объекта в состоянии тревожной ситуации текста подсказки.
+    function SetEmergencyTitle(title1, title2) {
+        if (emergencyMarker != null) {
+            emergencyMarker.setTitle(title1, title2);
+        }
+    }
+
+    // Установка картинки для объекта в состоянии тревожной ситуации на карте.
+    function SetEmergencyIcon(icon) {
+        if (emergencyMarker != null) {
+            emergencyMarker.setIcon(icon);
+        }
+    }
+
+    // Изменение цвета области подсказки для объекта в состоянии тревожной ситуации.
+    function ChangeEmergencyNoteColor(color) {
+        if (emergencyMarker != null) {
+            emergencyMarker.setNoteColor(color);
+        }
+    }
+
+    // Поиск объекта в состоянии тревожной ситуации на карте и установка центра карты
+    // месте, где находится найденный объект.
+    function FindEmergencyObject() {
+        if (map != null && emergencyMarker != null) {
+            map.setCenter(emergencyMarker.point_);
+        }
+    }
+
+    // Удаление с карты объекта, представляющего тревожную ситуацию.
+    function DelEmergencyMarker() {
+        if (emergencyMarker != null) {
+            emergencyMarker.setMap(null);
+            emergencyMarker = null;
+        }
+    }
+
+    // Выбор такого ракурса и масштаба карты, при котором видны все маркеры, отображенные на карте.
+    function ShowAllObjectsOnMap(listMsuIds) {
+        var latSouthWest = 90;
+        var lngSouthWest = 180;
+        var latNorthEast = -90;
+        var lngNorthEast = -180;
+        var countMarkers = 0;
+        var i;
+        var markerPoint;
+        var markerLat;
+        var markerLng;
+        if (listMsuIds == "") {
+            for (i = 0; i < markerCount; i++) {
+                markerPoint = icons[i][1].point_;
+                markerLat = markerPoint.lat();
+                markerLng = markerPoint.lng();
+                if (latSouthWest > markerLat)
+                    latSouthWest = markerLat;
+                if (lngSouthWest > markerLng)
+                    lngSouthWest = markerLng;
+                if (latNorthEast < markerLat)
+                    latNorthEast = markerLat;
+                if (lngNorthEast < markerLng)
+                    lngNorthEast = markerLng;
+                countMarkers++;
+            }
+        }
+        else {
+            var ids = listMsuIds.split(";");
+            for (i = 0; i < markerCount; i++) {
+                for (var j = 0; j < ids.length; j++) {
+                    if (ids[j] == icons[i][0]) {
+                        markerPoint = icons[i][1].point_;
+                        markerLat = markerPoint.lat();
+                        markerLng = markerPoint.lng();
+                        if (latSouthWest > markerLat)
+                            latSouthWest = markerLat;
+                        if (lngSouthWest > markerLng)
+                            lngSouthWest = markerLng;
+                        if (latNorthEast < markerLat)
+                            latNorthEast = markerLat;
+                        if (lngNorthEast < markerLng)
+                            lngNorthEast = markerLng;
+                        countMarkers++;
+                        break;
+                    }
+                }
+            }
+        }
+        if (countMarkers == 1 && latNorthEast == latSouthWest && lngNorthEast == lngSouthWest) {
+            CenterMap(latNorthEast, lngNorthEast);
+        }
+        else if (latNorthEast > latSouthWest && lngNorthEast > lngSouthWest) {
+            var bounds = new google.maps.LatLngBounds(new google.maps.LatLng(latSouthWest, lngSouthWest), new google.maps.LatLng(latNorthEast, lngNorthEast));
+            map.fitBounds(bounds);
+        }
+    }
+
+    // Функция показывает трек в виде ломаной линии заданного цвета.
+    function ShowTrack(points, thickness, color) {
+        var pointArray = [];
+        for (var i = 0; i < points.Count; i++)
+            pointArray[i] = new google.maps.LatLng(points.GetLat(i), points.GetLng(i));
+        var encodedPolyline = new google.maps.Polyline({
+            path: pointArray,
+            strokeColor: color,
+            strokeOpacity: 1,
+            strokeWeight: thickness,
+            clickable: false,
+            map: map
+        });
+        tracks[trackCount] = encodedPolyline;
+        trackCount = trackCount + 1;
+
+        var bounds = new google.maps.LatLngBounds();
+        for (var i = 0, ltLgLen = pointArray.length; i < ltLgLen; i++) {
+            bounds.extend(pointArray[i]);
+        }
+        map.fitBounds(bounds);
+    }
+
+    // Функция удаляет все треки с карты.
+    function ClearTracks() {
+        for (i = 0; i < trackCount; i++) {
+            tracks[i].setMap(null);
+        }
+        trackCount = 0;
+        tracks = [];
+    }
+
+    // Функция показывает карту покрытия
+    function ShowCoverage(image, latMin, lonMin, latMax, lonMax) {
+        ClearCoverage();
+
+        var boundaries = new google.maps.LatLngBounds(new google.maps.LatLng(latMax, lonMin), new google.maps.LatLng(latMin, lonMax));
+        coverageMap = new CoverageMap(image, boundaries);
+        coverageMap.setMap(map);
+        map.fitBounds(boundaries);
+    }
+
+    // Функция удаляет карту покрытия
+    function ClearCoverage() {
+        if (coverageMap != null)
+            coverageMap.setMap(null);
+        coverageMap = null;
+    }
+
+    // Функция показывает маршрут в виде ломаной линии заданного цвета.
+    function ShowRoute(routeId, points, thickness, color, keyPoints) {
+        var pointArray = [];
+        for (var i = 0; i < points.Count; i++)
+            pointArray[i] = new google.maps.LatLng(points.GetLat(i), points.GetLng(i));
+        var encodedPolyline = new google.maps.Polyline({
+            path: pointArray,
+            strokeColor: color,
+            strokeOpacity: 0.4,
+            strokeWeight: thickness,
+            clickable: false,
+            map: map
+        });
+
+        var rout = new RouteKeyPoints(keyPoints, color, map);
+
+        //for (i = 0; i < keyPoints.Count; i++)
+        //    alert(keyPoints.getLat(i));
+        for (i = 0; i < routeCount; i++) {
+            if (routeId == routes[i][0]) {
+                if (routes[i][1])
+                    routes[i][1].setMap(null);
+                if (routes[i][2])
+                    routes[i][2].setMap(null);
+                routes[i][1] = encodedPolyline;
+                routes[i][2] = rout;
+                return;
+            }
+        }
+        routes[routeCount] = new Array(4);
+        routes[routeCount][0] = routeId;
+        routes[routeCount][1] = encodedPolyline;
+        routes[routeCount][2] = rout;
+        routeCount = routeCount + 1;
+    }
+
+    var edit_routeId;
+    var ShowingEditRoute = null;
+    var ShowingEditRouteKeyPoints = null;
+
+    // Функция инициирует редактирование маршрута на карте.
+    function BeginEditRoute(routeId, points, thickness, color) {
+        ShowingEditRoute = null;
+        ShowingEditRouteKeyPoints = null;
+        edit_route = null;
+        edit_routeId = routeId;
+        for (var i = 0; i < routeCount; i++) {
+            if (routeId == routes[i][0]) {
+                if (routes[i][1])
+                    ShowingEditRoute = routes[i][1];
+                if (routes[i][2])
+                    ShowingEditRouteKeyPoints = routes[i][2];
+                break;
+            }
+        }
+        if (ShowingEditRoute)
+            ShowingEditRoute.setMap(null);
+        if (ShowingEditRouteKeyPoints)
+            ShowingEditRouteKeyPoints.setMap(null);
+
+        var pointArray = [];
+        for (i = 0; i < points.Count; i++)
+            pointArray[i] = new google.maps.LatLng(points.GetLat(i), points.GetLng(i));
+        edit_route = new google.maps.Polyline({
+            path: pointArray,
+            strokeColor: color,
+            strokeOpacity: 0.4,
+            strokeWeight: thickness,
+            clickable: false,
+            map: map
+        });
+        var bounds = new google.maps.LatLngBounds();
+        for (i = 0; i < pointArray.length; i++) {
+            bounds.extend(pointArray[i]);
+        }
+        map.fitBounds(bounds);
+        edit_route.setEditable(true);
+    }
+
+    // Получение списка координат вершин редактируемого маршрута на карте.
+    function GetEditRouteInfo() {
+        var vertexInfo = "";
+        if (edit_route) {
+            path = edit_route.getPath();
+            for (var i = 0; i < path.getLength() ; i++) {
+                if (i > 0)
+                    vertexInfo += "\n";
+                var pnt = path.getAt(i);
+                vertexInfo += pnt.lat() + ";" + pnt.lng();
+            }
+        }
+        return vertexInfo;
+    }
+
+    // Завершение редактирования маршрута на карте.
+    function EndEditRoute(applyChange) {
+        var vertexInfo = "";
+        if (edit_route) {
+            edit_route.setEditable(false);
+            if (applyChange) {
+                var i;
+                if (ShowingEditRoute) {
+                    for (i = 0; i < routeCount; i++) {
+                        if (edit_routeId == routes[i][0]) {
+                            routes[i][1] = edit_route;
+                            routes[i][2] = null;
+                            break;
+                        }
+                    }
+                }
+                else
+                    edit_route.setMap(null);
+                path = edit_route.getPath();
+                for (i = 0; i < path.getLength() ; i++) {
+                    if (i > 0)
+                        vertexInfo += "\n";
+                    var pnt = path.getAt(i);
+                    vertexInfo += pnt.lat() + ";" + pnt.lng();
+                }
+            }
+            else {
+                edit_route.setMap(null);
+                if (ShowingEditRoute)
+                    ShowingEditRoute.setMap(map);
+                if (ShowingEditRouteKeyPoints)
+                    ShowingEditRouteKeyPoints.setMap(map);
+            }
+            ShowingEditRoute = null;
+            ShowingEditRouteKeyPoints = null;
+            edit_route = null;
+        }
+        return vertexInfo;
+    }
+
+    // Создание нового маршрута.
+    function BeginCreateRoute(color) {
+        drawingManager = new google.maps.drawing.DrawingManager({
+            drawingMode: google.maps.drawing.OverlayType.POLYLINE,
+            drawingControl: false,
+            polylineOptions: {
+                strokeColor: color,
+                strokeOpacity: 0.4,
+                strokeWeight: 4,
+                clickable: false,
+                editable: true
+            },
+            map: map
+        });
+        creatingNewRoute = true;
+        google.maps.event.addListener(drawingManager, "polylinecomplete", EndDrawingRoute);
+        window.focus();
+    }
+
+    // Создание нового маршрута завершено.
+    function EndDrawingRoute(line) {
+        new_route = line;
+        drawingManager.setDrawingMode(null);
+        creatingNewRoute = false;
+    }
+
+    // Удаление последней вершины у создаваемого маршрута.
+    function DeleteCreateRouteLastVertex() {
+        if (creatingNewRoute && new_route != null) {
+            var vertexCount = new_route.getVertexCount();
+            if (vertexCount > 0) {
+                if (vertexCount == 2) {
+                    new_route.deleteVertex(0);
+                    new_route.deleteVertex(0);
+                }
+                else
+                    new_route.deleteVertex(vertexCount - 1);
+                new_route.enableDrawing();
+            }
+        }
+    }
+
+    // Завершение создания нового маршрута.
+    function EndCreateRoute() {
+        var vertexInfo = "";
+        if (drawingManager) {
+            drawingManager.setDrawingMode(null);
+            drawingManager.setMap(null);
+            drawingManager = null;
+            creatingNewRoute = false;
+
+            if (new_route != null) {
+                path = new_route.getPath();
+                for (var i = 0; i < path.getLength() ; i++) {
+                    if (i > 0)
+                        vertexInfo += "\n";
+                    var pnt = path.getAt(i);
+                    vertexInfo += pnt.lat() + ";" + pnt.lng();
+                }
+                new_route.setMap(null);
+                new_route = null;
+            }
+        }
+        return vertexInfo;
+    }
+
+    // Функция удаляет заданный маршрут с карты.
+    function ClearRoute(routeId) {
+        for (var i = 0; i < routeCount; i++) {
+            if (routeId == routes[i][0]) {
+                if (routes[i][1]) {
+                    routes[i][1].setMap(null);
+                    routes[i][1] = null;
+                }
+                if (routes[i][2]) {
+                    routes[i][2].setMap(null);
+                    routes[i][2] = null;
+                }
+                return;
+            }
+        }
+    }
+
+    // Функция удаляет все маршруты с карты.
+    function ClearRoutes() {
+        for (i = 0; i < routeCount; i++) {
+            if (routes[i][1])
+                routes[i][1].setMap(null);
+            if (routes[i][2])
+                routes[i][2].setMap(null);
+        }
+        routeCount = 0;
+        routes = [];
+    }
+
+    function decodeLevels(encodedLevelsString) {
+        var decodedLevels = [];
+        for (var i = 0; i < encodedLevelsString.length; ++i) {
+            var level = encodedLevelsString.charCodeAt(i) - 63;
+            decodedLevels.push(level);
+        }
+        return decodedLevels;
+    }
+
+    // Функция отображает зону в виде области, закрашенной заданным цветом.
+    function ShowZone(zoneId, points, color) {
+        var pointArray = [];
+        for (var i = 0; i < points.Count; i++)
+            pointArray[i] = new google.maps.LatLng(points.GetLat(i), points.GetLng(i));
+        var encodedPolygone = new google.maps.Polygon({
+            paths: pointArray,
+            strokeColor: color,
+            strokeOpacity: 0.4,
+            strokeWeight: 1,
+            fillColor: color,
+            fillOpacity: 0.4,
+            clickable: false,
+            map: map
+        });
+        for (var i = 0; i < zoneCount; i++) {
+            if (zoneId == zones[i][0]) {
+                if (zones[i][1])
+                    zones[i][1].setMap(null);
+                zones[i][1] = encodedPolygone;
+                return;
+            }
+        }
+        zones[zoneCount] = new Array(2);
+        zones[zoneCount][0] = zoneId;
+        zones[zoneCount][1] = encodedPolygone;
+        zoneCount = zoneCount + 1;
+    }
+
+    var edit_zoneId;
+    var ShowingEditZone = null;
+
+    // Функция инициирует редактирование зоны на карте.
+    function BeginEditZone(zoneId, points, color) {
+        ShowingEditZone = null;
+        edit_zone = null;
+        edit_zoneId = zoneId;
+        for (var i = 0; i < zoneCount; i++) {
+            if (zoneId == zones[i][0] && zones[i][1]) {
+                ShowingEditZone = zones[i][1];
+                break;
+            }
+        }
+        if (ShowingEditZone)
+            ShowingEditZone.setMap(null);
+
+        var pointArray = [];
+        for (var i = 0; i < points.Count; i++)
+            pointArray[i] = new google.maps.LatLng(points.GetLat(i), points.GetLng(i));
+        edit_zone = new google.maps.Polygon({
+            paths: pointArray,
+            strokeColor: color,
+            strokeOpacity: 0.4,
+            strokeWeight: 1,
+            fillColor: color,
+            fillOpacity: 0.4,
+            clickable: false,
+            map: map
+        });
+        var bounds = edit_zone.getBounds();
+        map.fitBounds(bounds);
+        edit_zone.setEditable(true);
+    }
+
+    // Получение списка координат вершин редактируемой зоны на карте.
+    function GetEditZoneInfo() {
+        try {
+            var vertexInfo = "";
+            if (edit_zone != null) {
+                path = edit_zone.getPath();
+                for (i = 0; i < path.getLength() ; i++) {
+                    if (i > 0)
+                        vertexInfo += "\n";
+                    var pnt = path.getAt(i);
+                    vertexInfo += pnt.lat() + ";" + pnt.lng();
+                }
+            }
+            return vertexInfo;
+        } catch (e) {
+            return "error";
+        }
+    }
+
+    // Завершение редактирования зоны на карте.
+    function EndEditZone(applyChange) {
+        var vertexInfo = "";
+        if (edit_zone != null) {
+            edit_zone.setEditable(false);
+            if (applyChange) {
+                var i;
+                if (ShowingEditZone) {
+                    for (i = 0; i < zoneCount; i++) {
+                        if (edit_zoneId == zones[i][0]) {
+                            zones[i][1] = edit_zone;
+                            break;
+                        }
+                    }
+                }
+                else
+                    edit_zone.setMap(null);
+                path = edit_zone.getPath();
+                for (i = 0; i < path.getLength() ; i++) {
+                    if (i > 0)
+                        vertexInfo += "\n";
+                    var pnt = path.getAt(i);
+                    vertexInfo += pnt.lat() + ";" + pnt.lng();
+                }
+            }
+            else {
+                edit_zone.setMap(null);
+                if (ShowingEditZone)
+                    ShowingEditZone.setMap(map);
+            }
+            ShowingEditZone = null;
+            edit_zone = null;
+        }
+        return vertexInfo;
+    }
+
+    // Создание новой зоны.
+    function BeginCreateZone(color) {
+        drawingManager = new google.maps.drawing.DrawingManager({
+            drawingMode: google.maps.drawing.OverlayType.POLYGON,
+            drawingControl: false,
+            polygonOptions: {
+                strokeColor: color,
+                strokeOpacity: 0.4,
+                fillColor: color,
+                fillOpacity: 0.4,
+                clickable: false,
+                editable: true
+            },
+            map: map
+        });
+        creatingNewZone = true;
+        google.maps.event.addListener(drawingManager, "polygoncomplete", EndDrawingZone);
+        window.focus();
+    }
+
+    // Создание новой зоны завершено.
+    function EndDrawingZone(newzone) {
+        new_zone = newzone;
+        drawingManager.setDrawingMode(null);
+        creatingNewZone = false;
+    }
+
+    // Удаление последней вершины у создаваемой зоны.
+    function DeleteCreateZoneLastVertex() {
+        if (creatingNewZone && new_zone != null) {
+            var vertexCount = new_zone.getVertexCount();
+            if (vertexCount > 0) {
+                if (vertexCount == 2) {
+                    new_zone.deleteVertex(0);
+                    new_zone.deleteVertex(0);
+                }
+                else
+                    new_zone.deleteVertex(vertexCount - 1);
+                new_zone.enableDrawing();
+            }
+        }
+    }
+
+    // Завершение создания новой зоны.
+    function EndCreateZone() {
+        var vertexInfo = "";
+        if (drawingManager) {
+            drawingManager.setDrawingMode(null);
+            drawingManager.setMap(null);
+            drawingManager = null;
+            creatingNewZone = false;
+
+            if (new_zone) {
+                path = new_zone.getPath();
+                for (var i = 0; i < path.getLength() ; i++) {
+                    if (i > 0)
+                        vertexInfo += "\n";
+                    var pnt = path.getAt(i);
+                    vertexInfo += pnt.lat() + ";" + pnt.lng();
+                }
+                new_zone.setMap(null);
+                new_zone = null;
+            }
+        }
+        return vertexInfo;
+    }
+
+    // Функция удаляет заданную зону с карты.
+    function ClearZone(zoneId) {
+        for (var i = 0; i < zoneCount; i++) {
+            if (zoneId == zones[i][0]) {
+                if (zones[i][1]) {
+                    zones[i][1].setMap(null);
+                    zones[i][1] = null;
+                }
+                return;
+            }
+        }
+    }
+
+    // Функция удаляет все зоны с карты.
+    function ClearZones() {
+        for (var i = 0; i < zoneCount; i++) {
+            if (zones[i][1])
+                zones[i][1].setMap(null);
+        }
+        zoneCount = 0;
+        zones = [];
+    }
+
+    // Функция отображает "Точку интереса".
+    function ShowPoint(pointId, icon, name, latitude, longitude, width, height) {
+        var pointOfInterest = new PointOfInterest(icon, name, latitude, longitude, width, height, map);
+        for (var i = 0; i < pointCount; i++) {
+            if (pointId == points[i][0]) {
+                if (points[i][1])
+                    points[i][1].setMap(null);
+                points[i][1] = pointOfInterest;
+                return;
+            }
+        }
+        points[pointCount] = new Array(2);
+        points[pointCount][0] = pointId;
+        points[pointCount][1] = pointOfInterest;
+        pointCount = pointCount + 1;
+    }
+
+    // Функция удаляет заданную "Точку интереса" с карты.
+    function ClearPoint(pointId) {
+        for (var i = 0; i < pointCount; i++) {
+            if (pointId == points[i][0]) {
+                points[i][1].setMap(null);
+                points[i][1] = null;
+                return;
+            }
+        }
+    }
+
+    // Функция удаляет все "Точки интереса" с карты.
+    function ClearPoints() {
+        for (var i = 0; i < pointCount; i++) {
+            if (points[i][1])
+                points[i][1].setMap(null);
+        }
+        pointCount = 0;
+        points = [];
+    }
+
+    // Инициация создания новой точки интереса.
+    function BeginCreatePoint(icon, name, width, height) {
+        map.setOptions({ draggableCursor: "crosshair" });
+        newPointOfInterest = new PointOfInterest(icon, name, 0, 0, width, height, map);
+    }
+
+    // Завершение создания новой точки интереса.
+    function EndCreatePoint() {
+        var newPointCoords = "";
+        map.setOptions({ draggableCursor: "hand" });
+        if (newPointOfInterest) {
+            if (creatingNewPoint)
+                newPointCoords = newPointOfInterest.latitude_.toString() + ";" + newPointOfInterest.longitude_.toString();
+            newPointOfInterest.setMap(null);
+            newPointOfInterest = null;
+        }
+        creatingNewPoint = false;
+        return newPointCoords;
+    }
+
+    // Инициация режима выбора координат радиоабонента на карте.
+    function BeginSetLocation(icon, latitude, longitude) {
+        map.setOptions({ draggableCursor: "crosshair" });
+        if (setCoordinatesPoint) {
+            var point = new google.maps.LatLng(latitude, longitude);
+            setCoordinatesPoint.setCoordinates(point);
+        } else {
+            setCoordinatesPoint = new PointOfInterest(icon, "", latitude, longitude, 24, 24, map);
+        }
+    }
+
+    // Завершение режима выбора координат радиоабонента на карте.
+    function EndSetLocation() {
+        map.setOptions({ draggableCursor: "hand" });
+        if (setCoordinatesPoint) {
+            setCoordinatesPoint.setMap(null);
+            setCoordinatesPoint = null;
+        }
+    }
+
+    // Функция показывает на экране информацию о состоянии карты и отображаемых на ней объектов.
+    function ShowInfo() {
+        var showInfo = "";
+        for (var i = 0; i < markerCount; i++) {
+            showInfo += "(" + i + ") Id: " + icons[i][0];
+            if (icons[i][0] > 0) {
+                showInfo += " ; " + icons[i][1].icon_;
+                showInfo += "\n   --> " + icons[i][1].point_;
+            }
+            showInfo += "\n";
+        }
+        window.external.ShowInfo(showInfo);
+    }
+
+    function SetAnimateMarker(objectId, latitude, longitude, icon, title1, title2) {
+        if (AnimateMarker != null)
+            AnimateMarker.setMap(null);
+        var point = new google.maps.LatLng(latitude, longitude);
+        AnimateMarker = new AnimateIcon(objectId, point, icon, title1, title2, map);
+    }
+
+    function MoveAnimateMarker(latitude, longitude, title1, title2) {
+        if (AnimateMarker != null) {
+            var point = new google.maps.LatLng(latitude, longitude);
+            AnimateMarker.setCoordinates(point, title1, title2);
+        }
+    }
+
+    function DeleteAnimateMarker() {
+        if (AnimateMarker != null) {
+            AnimateMarker.setMap(null);
+            AnimateMarker = null;
+        }
+    }
+
+    function SetContur(left, top) {
+        if (ConturObject == null)
+            ConturObject = new Contur(left, top, map);
+        else
+            ConturObject.setNew(left, top);
+    }
+
+    function SetConturSize(x, y) {
+        if (ConturObject != null) {
+            ConturObject.setSize(x, y);
+        }
+    }
+
+    function GetConturInfo() {
+        if (ConturObject != null) {
+            ConturObject.getInfo();
+        }
+        window.focus();
+    }
+
+    function GetIconSizeConturInfo() {
+        if (ConturObject != null) {
+            ConturObject.iconSizeGetInfo();
+        }
+        window.focus();
+    }
+
+    // Щелчок левой клавишей мыши на прямоугольник.
+    function RectangleClick(event, objectId) {
+        if (setCoordinatesPoint) {
+            // Если включен режим задания координат на карте, он имеет больший приоритет!
+            setCoordinatesPoint.setCoordinates(event.latLng);
+            window.external.SetCoordinates(event.latLng.lat(), event.latLng.lng());
+            return;
+        }
+
+        ObjectIdOnTop = objectId;
+        if (emergencyMarker != null && emergencyMarker.objectId_ == objectId)
+            emergencyMarker.bringToFront();
+
+        for (var i = 0; i < markerCount; i++) {
+            var marker = icons[i][1];
+            if (icons[i][0] == objectId) {
+                marker.bringToFront();
+                break;
+            }
+        }
+        window.external.OnMouseLeftClick(objectId, event.screenX, event.screenY);
+    }
+
+    // Двойной щелчок левой клавишей мыши на прямоугольник.
+    function DoubleRectangleClick(event, objectId) {
+        ObjectIdOnTop = objectId;
+        for (var i = 0; i < markerCount; i++) {
+            var marker = icons[i][1];
+            if (icons[i][0] == objectId) {
+                marker.bringToFront();
+                break;
+            }
+        }
+        window.external.OnMouseDoubleClick(objectId, event.screenX, event.screenY);
+    }
+
+    // Щелчок правой клавишей мыши на прямоугольник.
+    function RectangleRightClick(event, objectId) {
+        abonentClick = true;
+        window.external.OnMouseRightClick(objectId, event.screenX, event.screenY);
+    }
+
+    // Установка цвета фона прямоугольника.
+    function RectangleSetColor(color) {
+        if (this.emergency_)
+            return;
+        this.bgColor = color;
+        if (this.div_)
+            this.div_.style.background = color;
+    }
+
+    // Установка цвета фона области подсказки.
+    function RectangleSetNoteColor(color) {
+        this.textColor = color;
+        if (this.div_)
+            this.div_.style.background = color;
+        if (this.divbgr_)
+            this.divbgr_.style.background = color;
+    }
+
+    // Установка новых координат для прямоугольника на карте.
+    function RectangleSetCoordinates(point) {
+        this.point_ = point;
+        this.bringToFront();
+    }
+
+    // Установка для прямоугольника нового заголовка.
+    function RectangleSetTitle(title1, title2) {
+        this.title1_ = title1;
+        this.title2_ = title2;
+        this.bringToFront();
+    }
+
+    // Пересоздание элементов, отображающих абонента, чтобы они отобразились на переднем плане.
+    function RectangleBringToFront() {
+        if (this.div_ == null)
+            return;
+        this.div_.parentNode.removeChild(this.div_);
+        this.div_.parentNode.removeChild(this.div_);
+        if (showInfoLabelOnMap == 1) {
+            this.div_.innerHTML = "<div style='margin: 2px;'><p style='margin: 2px; text-align:center; font-family: arial; font-size:14px; color: #0072bc'><nobr><b>" + this.title1_ + "</b></nobr></p>";
+        }
+        else {
+            this.div_.innerHTML = "<div style='margin: 2px;'><p style='margin: 2px; text-align:center; font-family: arial; font-size:14px; color: #0072bc'><nobr><b>" + this.title1_ + "</b></nobr></p><p style='margin: 2px; text-align:center; font-family: arial; font-size:14px'><nobr>" + this.title2_ + "</nobr></p>";
+        }
+
+        var sdvig = mapIconFormat == 0 ? 10 : 14;
+        var overlayProjection = this.getProjection();
+        var koor = overlayProjection.fromLatLngToDivPixel(this.point_);
+        this.div_.style.left = koor.x - sdvig - 1 + "px";
+        if (showInfoLabelOnMap == 1)
+            this.div_.style.top = koor.y - sdvig - 24 + "px";
+        else
+            this.div_.style.top = koor.y - sdvig - 42 + "px";
+        this.div_.style.left = koor.x - sdvig + "px";
+        this.div_.style.top = koor.y - sdvig + "px";
+
+        var panes = this.getPanes();
+        panes.overlayImage.appendChild(this.div_);
+        panes.overlayImage.appendChild(this.div_);
+
+        // Выдвинем на передний план "отслеживаемый" маркер, если он задан.
+        if (ObjectIdOnTop != 0 && ObjectIdOnTop != this.objectId_) {
+            for (var i = 0; i < markerCount; i++) {
+                var marker = icons[i][1];
+                if (icons[i][0] == ObjectIdOnTop) {
+                    marker.bringToFront();
+                    break;
+                }
+            }
+        }
+    }
+
+    // Установка картинки, отображающейся внутри прямоугольника.
+    function RectangleSetIcon(icon, imageHeight, imageWidth) {
+        var newImage = document.createElement("img");
+        newImage.src = icon;
+        this.icon_ = icon;
+        this.image_.src = icon;
+        this.image_.style.width = mapIconFormat == 0 ? 16 : 24;
+        this.image_.style.height = mapIconFormat == 0 ? 16 : 24;
+    }
+
+
+
+    // Маркер, состоящий из двух элементов - картинки, изображающей абонента,
+    // и прямоугольника рядом с ней - с информацией о его текущем состоянии.
+    function AnimateIcon(objectId, point, icon, title1, title2, map) {
+        this.objectId_ = objectId;
+        this.point_ = point;
+        this.icon_ = icon;
+        this.title1_ = title1;
+        this.title2_ = title2;
+        this.map_ = map;
+        this.image_ = null;
+        this.div_ = null;
+        this.div_ = null;
+        this.setCoordinates = AnimateIconCoordinates;
+        this.setMap(map);
+    }
+    AnimateIcon.prototype = new google.maps.OverlayView();
+
+    // Создаем объект DIV, представляющий данный прямоугольник.
+    AnimateIcon.prototype.onAdd = function () {
+        var imag = new Image();
+        imag.src = this.icon_;
+        imag.width = mapIconFormat == 0 ? 16 : 24;
+        imag.height = mapIconFormat == 0 ? 16 : 24;
+        imag.style.margin = "1px";
+        // Создание объекта DIV, представляющего данный прямоугольник
+        var div = document.createElement("div");
+        //div.style.border = "1px solid #000000";
+        div.style.background = "#B8B8B8";
+        div.style.position = "absolute";
+        div.tag = this.objectId_;
+        var divbgr = document.createElement("div");
+        divbgr.style.margin = 2 + "px";
+        divbgr.style.background = "#C8C8C8";
+        divbgr.style.border = "1px solid #FAFAFA";
+        div.appendChild(divbgr);
+        this.image_ = imag;
+        divbgr.appendChild(this.image_);
+        var divInfoBorder = document.createElement("div");
+        divInfoBorder.style.border = "1px solid #000000";
+        divInfoBorder.style.background = "#FFCC99";
+        divInfoBorder.style.filter += "progid:DXImageTransform.Microsoft.Alpha(opacity=90)";
+        divInfoBorder.style.position = "absolute";
+        divInfoBorder.innerHTML = "<div style='margin: 2px;'><p style='margin: 2px; text-align:center; white-space:nowrap; font-family: arial; font-size:14px'><b>" + this.title1_ + "</b></p><p style='margin: 2px; text-align:center; white-space:nowrap; font-family: arial; font-size:14px'>" + this.title2_ + "</p>";
+        this.div_ = div;
+        this.div_ = divInfoBorder;
+        // Маркер располагается в плоскости теней маркеров
+        var panes = this.getPanes();
+        panes.overlayImage.appendChild(div);
+        panes.overlayImage.appendChild(divInfoBorder);
+    };
+    //Удаление главного объекта DIV с панели карты
+    AnimateIcon.prototype.onRemove = function () {
+        this.div_.parentNode.removeChild(this.div_);
+        this.div_.parentNode.removeChild(this.div_);
+    };
+    // Прямоугольник пересоздается на основании действующей проекции и текущего масштаба
+    AnimateIcon.prototype.draw = function () {
+        this.div_.style.visibility = "visible";
+        // Вычисление координат объекта DIV двух противоположных углов
+        // границы прямоугольника для получения его размера и позиции
+        var overlayProjection = this.getProjection();
+        var koor = overlayProjection.fromLatLngToDivPixel(this.point_);
+        // Теперь нужно расположить объекты DIV в соответствии с координатами DIV границ
+        this.div_.style.left = koor.x - 10 + "px";
+        this.div_.style.top = koor.y - 19 + "px";
+        this.div_.style.left = koor.x - 12 + "px";
+        this.div_.style.top = koor.y - 64 + "px";
+    };
+    // Установка новых координат и текста для маркера анимации маршрута.
+    function AnimateIconCoordinates(point, title1, title2) {
+        this.point_ = point;
+        this.title1_ = title1;
+        this.title2_ = title2;
+        var overlayProjection = this.getProjection();
+        if (overlayProjection == null)
+            return;
+        var koor = overlayProjection.fromLatLngToContainerPixel(point);
+        var gSize = this.map_.getDiv();
+        if (koor.x < 20 || koor.x > gSize.offsetWidth - 60 || koor.y < 60 || koor.y > gSize.offsetHeight - 20) {
+            this.map_.setCenter(point);
+        }
+        overlayProjection = this.getProjection();
+        koor = overlayProjection.fromLatLngToDivPixel(point);
+        this.div_.style.left = koor.x - 10 + "px";
+        this.div_.style.top = koor.y - 19 + "px";
+        this.div_.innerHTML = "<div style='margin: 2px;'><p style='margin: 2px; text-align:center; white-space:nowrap; font-family: arial; font-size:14px'><b>" + title1 + "</b></p><p style='margin: 2px; text-align:center; white-space:nowrap; font-family: arial; font-size:14px'>" + title2 + "</p>";
+        this.div_.style.left = koor.x - 12 + "px";
+        this.div_.style.top = koor.y - 64 + "px";
+    }
+
+
+
+    // Маркер, отображающий "Точку интереса". Состоит из одного элемента - картинки.
+    function PointOfInterest(icon, name, latitude, longitude, width, height, map) {
+        this.icon_ = icon;
+        this.name_ = name;
+        this.latitude_ = latitude;
+        this.longitude_ = longitude;
+        this.point_ = new google.maps.LatLng(latitude, longitude);
+        this.width_ = width;
+        this.height_ = height;
+        this.map_ = map;
+        this.image_ = null;
+        this.div_ = null;
+        this.width_half_ = Math.round(width / 2);
+        this.height_half_ = Math.round(height / 2);
+        this.setCoordinates = SetPointCoordinates;
+        this.setMap(map);
+    }
+    PointOfInterest.prototype = new google.maps.OverlayView();
+
+    // Создаем объект DIV, представляющий "Точку интереса".
+    PointOfInterest.prototype.onAdd = function () {
+        var imag = new Image();
+        imag.src = this.icon_;
+        imag.title = this.name_;
+        imag.width = this.width_;
+        imag.height = this.height_;
+        this.image_ = imag;
+        var panes = this.getPanes();
+        if (this.name_ == "") {
+            // Объект располагается в верхней плоскости
+            var div = document.createElement("div");
+            div.style.border = "1px solid #000000";
+            div.style.background = "#FAFAFA";
+            div.style.position = "absolute";
+            this.div_ = div;
+            div.appendChild(this.image_);
+            panes.floatPane.appendChild(div);
+        } else {
+            // Объект располагается в плоскости маркеров
+            imag.style.margin = "1px";
+            imag.style.position = "absolute";
+            panes.overlayLayer.appendChild(imag);
+        }
+    };
+    //Удаление главного объекта DIV с панели карты
+    PointOfInterest.prototype.onRemove = function () {
+        this.image_.parentNode.removeChild(this.image_);
+        if (this.div_)
+            this.div_.parentNode.removeChild(this.div_);
+    };
+    // Объект пересоздается на основании действующей проекции и текущего масштаба
+    PointOfInterest.prototype.draw = function () {
+        // Вычисление координат объекта DIV двух противоположных углов
+        // границы прямоугольника для получения его размера и позиции
+        var overlayProjection = this.getProjection();
+        var koor = overlayProjection.fromLatLngToDivPixel(this.point_);
+        // Теперь нужно расположить объекты DIV в соответствии с координатами DIV границ
+        if (this.div_) {
+            this.div_.style.left = koor.x - this.width_half_ + "px";
+            this.div_.style.top = koor.y - this.height_half_ + "px";
+        } else {
+            this.image_.style.left = koor.x - this.width_half_ + "px";
+            this.image_.style.top = koor.y - this.height_half_ + "px";
+        }
+    };
+    // Установка новых координат для точки интереса.
+    function SetPointCoordinates(point) {
+        this.point_ = point;
+        this.latitude_ = point.lat();
+        this.longitude_ = point.lng();
+        var overlayProjection = this.getProjection();
+        var koor = overlayProjection.fromLatLngToDivPixel(this.point_);
+        if (this.div_) {
+            this.div_.style.left = koor.x - this.width_half_ + "px";
+            this.div_.style.top = koor.y - this.height_half_ + "px";
+        } else {
+            this.image_.style.left = koor.x - this.width_half_ + "px";
+            this.image_.style.top = koor.y - this.height_half_ + "px";
+        }
+    }
+
+
+
+    // Рамка - прямоугольник с прозрачным фоном и непрозрачной рамкой.
+    function Contur(left, top, map) {
+        this.left_ = left;
+        this.top_ = top;
+        this.map_ = map;
+        this.div_ = document.createElement("div");
+        this.div_.style.border = "1px solid #000000";
+        this.div_.style.background = "transparent";
+        this.div_.style.position = "absolute";
+        this.width_ = 1;
+        this.height_ = 1;
+        this.initpoint_ = new google.maps.Point(left, top);
+        this.visible_ = true;
+        this.setNew = ConturSetNew;
+        this.setSize = ConturSetSize;
+        this.getInfo = ConturGetInfo;
+        this.iconSizeGetInfo = ConturIconSizeGetInfo;
+        this.setMap(map);
+    }
+    Contur.prototype = new google.maps.OverlayView();
+
+    // Создаем объект DIV, представляющий "Рамку".
+    Contur.prototype.onAdd = function () {
+        // Рамка располагается в самой "высокой" плоскости (плоскость информационных окон)
+        this.getPanes().floatPane.appendChild(this.div_);
+        this.projection = this.getProjection();
+    };
+    //Удаление объекта DIV с панели карты
+    Contur.prototype.onRemove = function () {
+        this.div_.parentNode.removeChild(this.div_);
+    };
+    // Объект пересоздается на основании действующей проекции и текущего масштаба
+    Contur.prototype.draw = function () {
+        if (!this.visible_)
+            return;
+        var point = new google.maps.Point(this.left_, this.top_);
+        var latlon = this.projection.fromContainerPixelToLatLng(point);
+        var koor = this.projection.fromLatLngToDivPixel(latlon);
+        this.div_.style.visibility = "visible";
+        this.div_.style.left = koor.x;
+        this.div_.style.top = koor.y;
+        this.div_.style.width = this.width_;
+        this.div_.style.height = this.height_;
+    };
+    // Установка новых начальных координат для контура.
+    function ConturSetNew(left, top) {
+        this.left_ = left;
+        this.top_ = top;
+        this.width_ = 1;
+        this.height_ = 1;
+        this.initpoint_ = new google.maps.Point(left, top);
+        this.visible_ = true;
+        var latlon = this.projection.fromContainerPixelToLatLng(this.initpoint_);
+        var koor = this.projection.fromLatLngToDivPixel(latlon);
+        this.div_.style.visibility = "visible";
+        this.div_.style.left = koor.x;
+        this.div_.style.top = koor.y;
+        this.div_.style.width = this.width_;
+        this.div_.style.height = this.height_;
+    }
+
+    // Установка новых координат и размера для контура.
+    function ConturSetSize(x, y) {
+        if (this.projection == null)
+            return;
+        var newCorn = 0;
+        if (x > this.initpoint_.x) {
+            this.width_ = x - this.initpoint_.x;
+            this.div_.style.width = this.width_;
+        }
+        else {
+            this.left_ = x;
+            this.width_ = this.initpoint_.x - x;
+            this.div_.style.width = this.width_;
+            newCorn = 1;
+        }
+        if (y > this.initpoint_.y) {
+            this.height_ = y - this.initpoint_.y;
+            this.div_.style.height = this.height_;
+        }
+        else {
+            this.top_ = y;
+            this.height_ = this.initpoint_.y - y;
+            this.div_.style.height = this.height_;
+            newCorn = 1;
+        }
+        if (newCorn == 1) {
+            var point = new google.maps.Point(this.left_, this.top_);
+            var latlon = this.projection.fromContainerPixelToLatLng(point);
+            var koor = this.projection.fromLatLngToDivPixel(latlon);
+            this.div_.style.left = koor.x;
+            this.div_.style.top = koor.y;
+        }
+    }
+    // Возвращение информации о выделенной области и удаление контура с карты.
+    function ConturGetInfo() {
+        this.visible_ = false;
+        this.div_.style.visibility = "hidden";
+        if (this.projection == null)
+            return;
+        var latlon1 = this.projection.fromContainerPixelToLatLng(new google.maps.Point(this.left_, this.top_));
+        var latlon2 = this.projection.fromContainerPixelToLatLng(new google.maps.Point(this.left_ + this.width_, this.top_ + this.height_));
+        window.external.GetConturInfo(latlon1.lat(), latlon1.lng(), latlon2.lat(), latlon2.lng());
+    }
+    // Возвращение информации об области, занимающей область равную иконке абонента
+    // с центром в точке начала выделения и удаление контура с карты.
+    function ConturIconSizeGetInfo() {
+        this.visible_ = false;
+        this.div_.style.visibility = "hidden";
+        var halficonsize = mapIconFormat == 0 ? 12 : 16;
+        var latlon1 = this.projection.fromContainerPixelToLatLng(new google.maps.Point(this.left_ - halficonsize, this.top_ - halficonsize));
+        var latlon2 = this.projection.fromContainerPixelToLatLng(new google.maps.Point(this.left_ + halficonsize, this.top_ + halficonsize));
+        window.external.GetConturInfo(latlon1.lat(), latlon1.lng(), latlon2.lat(), latlon2.lng());
+    }
+
+
+    // Ключевые точки маршрута.
+    function RouteKeyPoints(keyPoints, color, map) {
+        this.keyPoints_ = keyPoints;
+        this.color_ = color;
+        this.map_ = map;
+        this.keyps = [];
+        this.hide = RouteKeyPointsHide;
+        this.show = RouteKeyPointsShow;
+        this.setMap(map);
+    }
+    RouteKeyPoints.prototype = new google.maps.OverlayView();
+
+    // Создаем объекты DIV, которые будут отображать ключевые точки маршрута.
+    RouteKeyPoints.prototype.onAdd = function () {
+        var panes = this.getPanes();
+        for (var i = 0; i < this.keyPoints_.Count; i++) {
+            var div = document.createElement("div");
+            div.style.border = "1px solid ";
+            div.style.borderRadius = "6px";
+            div.style.position = "absolute";
+            div.style.cursor = "pointer";
+            div.tag = new google.maps.LatLng(this.keyPoints_.getLat(i), this.keyPoints_.getLng(i));
+            div.title = this.keyPoints_.getName(i);
+            var overlayProjection = this.getProjection();
+            var koor = overlayProjection.fromLatLngToDivPixel(div.tag);
+            div.style.left = koor.x - 8 + "px";
+            div.style.top = koor.y - 8 + "px";
+            div.innerHTML = "<div style='width: 12px; height: 12px; border-radius: 6px; opacity: 0.6; background: " + this.color_ + "'>";
+            this.keyps[i] = div;
+            panes.overlayMouseTarget.appendChild(this.keyps[i]);
+        }
+    };
+    //Удаление главного объекта DIV с панели карты
+    RouteKeyPoints.prototype.onRemove = function () {
+        for (var i = 0; i < this.keyps.length; i++) {
+            if (this.keyps[i])
+                this.keyps[i].parentNode.removeChild(this.keyps[i]);
+        }
+        this.keyps = [];
+    };
+    // Объект пересоздается на основании действующей проекции и текущего масштаба
+    RouteKeyPoints.prototype.draw = function () {
+        var overlayProjection = this.getProjection();
+        for (var i = 0; i < this.keyps.length; i++) {
+            var koor = overlayProjection.fromLatLngToDivPixel(this.keyps[i].tag);
+            this.keyps[i].style.left = koor.x - 8 + "px";
+            this.keyps[i].style.top = koor.y - 8 + "px";
+        }
+    };
+    // Скрыть ключевые точки маршрута.
+    function RouteKeyPointsHide() {
+        for (var i = 0; i < this.keyps.length; i++) {
+            this.keyps[i].style.visibility = "hidden";
+        }
+    }
+    // Показать ключевые точки маршрута.
+    function RouteKeyPointsShow() {
+        for (var i = 0; i < this.keyps.length; i++) {
+            this.keyps[i].style.visibility = "visible";
+        }
+    }
+
+
+    function CoverageMap(image, bounds) {
+        this.bounds_ = bounds;
+        this.image_ = image;
+        this.div_ = null;
+    }
+
+    CoverageMap.prototype = new google.maps.OverlayView();
+
+    CoverageMap.prototype.onAdd = function () {
+
+        var div = document.createElement('div');
+        div.style.border = 'none';
+        div.style.borderWidth = '0px';
+        div.style.position = 'absolute';
+
+        var img = document.createElement('img');
+        img.src = this.image_;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        div.appendChild(img);
+
+        this.div_ = div;
+
+        var panes = this.getPanes();
+        panes.overlayLayer.appendChild(this.div_);
+    };
+
+    CoverageMap.prototype.draw = function () {
+        var overlayProjection = this.getProjection();
+
+        var sw = overlayProjection.fromLatLngToDivPixel(this.bounds_.getSouthWest());
+        var ne = overlayProjection.fromLatLngToDivPixel(this.bounds_.getNorthEast());
+
+        var div = this.div_;
+        div.style.left = sw.x + 'px';
+        div.style.top = ne.y + 'px';
+        div.style.width = (ne.x - sw.x) + 'px';
+        div.style.height = (sw.y - ne.y) + 'px';
+    };
+
+    CoverageMap.prototype.onRemove = function () {
+        this.div_.parentNode.removeChild(this.div_);
+    };
+</script>
+
+<!-- Actual -->
+<script type="text/javascript">
+
+    // Объект "Карта".
+    var map;
+    
+    // Формирование объекта "Карта Google"
+    function InitMap() {
+        var mapCanvas = document.getElementById('map');
+        var myOptions = {
+            zoom: 13,
+            center: new google.maps.LatLng(56.501040, 84.992451),
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapTypeControl: true,
+            disableDefaultUI: true,
+            zoomControl: true
+        };
+        map = new google.maps.Map(mapCanvas, myOptions);
+
+        canvasProjectionOverlay = new CanvasProjectionOverlay();
+        canvasProjectionOverlay.setMap(map);
+    }
+
+    // Добавление узла графа на карту
+    function DrawNode(objectId, title, bgColor, latitude, longitude) {
+        var point = new google.maps.LatLng(latitude, longitude);
+        var node = new Node(objectId, point, title, bgColor);
+    }
+
+    // Узел графа
+    function Node(objectId, point, title, bgColor) {
+        this.objectId_ = objectId;
+        this.point_ = point;
+        this.title_ = title;
+        this.bgColor_ = bgColor;
+        this.div_ = null;
+
+        this.setMap(map);
+    }
+
+    Node.prototype = new google.maps.OverlayView();
+
+    // Создаем объект, представляющий данный узел графа
+    Node.prototype.onAdd = function () {
+        var circleDiv = document.createElement("div");
+        circleDiv.id = "circle";
+        circleDiv.style.backgroundColor = this.bgColor_;
+
+        var textDiv = document.createElement("div");
+        textDiv.id = "text";
+
+        textDiv.innerText = this.title_;
+        circleDiv.appendChild(textDiv);
+       
+        // Маркер располагается в плоскости теней маркеров
+        var panes = this.getPanes();
+        panes.overlayImage.appendChild(circleDiv);
+
+        this.textDiv_ = textDiv;
+        this.div_ = circleDiv;
+    };
+    //Удаление узла графа с карты
+    Node.prototype.onRemove = function () {
+        this.div_.parentNode.removeChild(this.div_);
+    };
+    // Узел графа пересоздается на основании действующей проекции и текущего масштаба
+    Node.prototype.draw = function () {
+        // Вычисление координат объекта DIV двух противоположных углов
+        // границы прямоугольника для получения его размера и позиции
+        var overlayProjection = this.getProjection();
+        var koor = overlayProjection.fromLatLngToDivPixel(this.point_);
+
+        // Смещение для расположения цетра окружности в требуемой координате
+        var xShift = 10;
+        var yShift = 10;
+
+        this.div_.style.left = koor.x - xShift + "px";
+        this.div_.style.top = koor.y - yShift + "px";
+    };
+
+    // Линия
+    function DrawEdge(objectId, lat1, lng1, lat2, lng2, color, widthInPx) {
+        this.objectId_ = objectId;
+        this.color_ = color || "#000000";
+        this.widthInPx_ = widthInPx;
+        
+        var p1 = new google.maps.LatLng(lat1, lng1);
+        var p2 = new google.maps.LatLng(lat2, lng2);
+
+        var edge = new google.maps.Polyline({
+            path: [p1, p2],
+            strokeColor: color,
+            strokeWeight: widthInPx,
+            clickable: false,
+            map: map
+        });
+    }
+
+</script>

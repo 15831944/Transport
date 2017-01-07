@@ -1,99 +1,89 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
 using GalaSoft.MvvmLight;
-using GalaSoft.MvvmLight.CommandWpf;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Windows;
-using System.Windows.Input;
+using System.IO;
+using System.Reflection;
+using System.Windows.Controls;
 using Transport.Aca3.Services;
 
 namespace Transport.Aca3.ViewModels
 {
     public class MapViewModel : ViewModelBase
     {
+        #region Consts
+
+        private const string MapHtmlResourcePath = "Transport.Aca3.GoogleMap.html";
+
+        #endregion
+
+        #region Fields
+
         private readonly IDataAccessService _dataAccessService;
+
+        #endregion Fields
+
+        #region Constructors
 
         public MapViewModel(IDataAccessService dataAccessService)
         {
             _dataAccessService = dataAccessService;
-            _buildMap = new Lazy<RelayCommand>(() => new RelayCommand(InvokeBuildMap));
+
+            // Создать браузер и загрузить содержимое страницы
+            WebBrowser = new WebBrowser();
+            var html = LoadMapHtmlResource();
+            WebBrowser.NavigateToString(html);
+            WebBrowser.LoadCompleted += (sender, args) => { DrawNetworkFromDb(); };
         }
 
-        public void ShowPath(PathViewModel path)
+        #endregion Constructors
+
+        #region Methods
+
+        public void DrawNetworkFromDb()
         {
+            WebBrowser.InvokeScript("InitMap");
+
+            var rand = new Random();
+
+            foreach (var node in _dataAccessService.GetGraphNodes())
+            {
+                var nodeId = node.Id;
+                // TODO: заменить на вызов одного метода с массивом в аргументах
+                WebBrowser.InvokeScript("DrawNode", nodeId, nodeId.ToString(), "#FFFF0000", node.Lat, node.Lon);
+
+                foreach (var edge in node.Edges)
+                {
+                    var edgeId = rand.Next();
+                    var p1Lat = edge.Source.Lat;
+                    var p1Lon = edge.Source.Lon;
+                    var p2Lat = edge.Dest.Lat;
+                    var p2Lon = edge.Dest.Lon;
+                    
+                    // TODO: заменить на вызов одного метода с массивом в аргументах
+                    WebBrowser.InvokeScript("DrawEdge", edgeId, p1Lat, p1Lon, p2Lat, p2Lon, "#000000", 1);
+                }
+            }
         }
+
+        private string LoadMapHtmlResource()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            
+            using (var stream = assembly.GetManifestResourceStream(MapHtmlResourcePath))
+            {
+                if (stream == null) return String.Empty;
+
+                var streamReader = new StreamReader(stream);
+                return streamReader.ReadToEnd();
+            }
+        }
+
+        #endregion Methods
 
 
         #region Properties
 
-        public ObservableCollection<VisualItemViewModel> VisualItems { get; } =
-            new ObservableCollection<VisualItemViewModel>();
-
-        private bool _isItemsLoaded;
-
-        public bool IsItemsLoaded
-        {
-            get { return _isItemsLoaded; }
-            set { Set(ref _isItemsLoaded, value); }
-        }
+        public WebBrowser WebBrowser { get; }
 
         #endregion
-
-        #region Commands
-
-        private readonly Lazy<RelayCommand> _buildMap;
-        public ICommand BuildMapCommand => _buildMap.Value;
-
-        private void InvokeBuildMap()
-        {
-            var nodes = _dataAccessService.GetGraphNodes();
-            GeoPositionToScreenPosition(nodes);
-            var edges = nodes.SelectMany(node => node.Edges).ToList();
-
-            nodes.ForEach(n => VisualItems.Add(n));
-            edges.ForEach(e => VisualItems.Add(e));
-
-            IsItemsLoaded = true;
-        }
-
-        #endregion
-
-        #region Helpers
-
-        private static void GeoPositionToScreenPosition(List<NodeViewModel> nodes)
-        {
-            var maxLat = 0.0;
-            var minLon = double.MaxValue;
-            var minDist = double.MaxValue;
-
-            foreach (var node in nodes)
-            {
-                if (node.Lat > Math.Abs(maxLat)) maxLat = Math.Abs(node.Lat);
-                if (node.Lon < Math.Abs(minLon)) minLon = Math.Abs(node.Lon);
-
-                foreach (var edge in node.Edges)
-                {
-                    var dist = LineLenght(edge.Source.Lon, edge.Dest.Lon, edge.Source.Lat, edge.Dest.Lat);
-                    if (dist < minDist) minDist = dist;
-                }
-            }
-
-            const double baseMinDest = 15.0;
-            var zoom = baseMinDest / minDist;
-
-            foreach (var node in nodes)
-            {
-                node.Center = new Point((node.Lon - minLon) * zoom, (-node.Lat + maxLat) * zoom);
-            }
-        }
-
-        private static double LineLenght(double x1, double x2, double y1, double y2)
-        {
-            return Math.Sqrt(Math.Pow(x2 - x1, 2) + Math.Pow(y2 - y1, 2));
-        }
-
-        #endregion
-
     }
 }
