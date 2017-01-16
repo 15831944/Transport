@@ -27,7 +27,6 @@
             border-radius: 10px;
             cursor: default;
             position: absolute;
-
         }
 
         #text {
@@ -43,13 +42,14 @@
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCVzX3KtIndMX3IbBSQciU60c3PRxDJSjo&language=ru"></script>
 </head>
 <!--onload="InitMap();"-->
-<body>
+<body onload="InitMap();">
     <div id="map"></div>
 </body>
 </html>
 
 <!-- Old -->
-<script type="text/javascript"> 
+<script type="text/javascript">
+
     // Текущий размер массива icons, содержащего ссылки на отображаемые на карте объекты (маркеры объектов).
     var markerCount = 0;
     // Массив, содержащий ссылки на отображаемые на карте объекты (маркеры объектов).
@@ -1608,7 +1608,18 @@
 
     // Объект "Карта".
     var map;
-    
+
+    // Узлы графа
+    var nodes = {};
+    // Ребра графа
+    var edges = {};
+    // Маршруты
+    var routes = {};
+
+    // *************************
+    // PUBLIC API
+    // *************************
+
     // Формирование объекта "Карта Google"
     function InitMap() {
         var mapCanvas = document.getElementById('map');
@@ -1624,21 +1635,82 @@
 
         canvasProjectionOverlay = new CanvasProjectionOverlay();
         canvasProjectionOverlay.setMap(map);
+
+        AddNode(1, 56.6, 84.3, 1, "#FF0000");
+        AddNode(2, 56.8, 84.5, 2, "#00FF00");
+        AddEdge(1, 1, 2);
+        RemoveNode(1);
     }
+
+    // PUBLIC API
 
     // Добавление узла графа на карту
-    function DrawNode(objectId, title, bgColor, latitude, longitude) {
-        var point = new google.maps.LatLng(latitude, longitude);
-        var node = new Node(objectId, point, title, bgColor);
+    function AddNode(objectId, lat, lon, title, bgColor) {
+        const node = new Node(objectId, lat, lon, title, bgColor);
+        nodes[objectId] = node;
     }
 
+    // Удаление узла из графа
+    function RemoveNode(objectId) {
+        var node = nodes[objectId];
+        Object.keys(node.edges_).forEach(function(key) {
+            const item = node.edges_[key];
+            RemoveEdge(item.objectId_);
+        });
+        node.setMap(null);
+        delete nodes[objectId];
+    }
+
+    function SetNodeParams(objectId, title, bgColor) {
+        
+    }
+    
+    // Добавление ребра на карту
+    function AddEdge(objectId, originNodeId, destNodeId) {
+        var edge = new Edge(objectId, originNodeId, destNodeId);
+        edges[objectId] = edge;
+    }
+
+    // Удаление ребра с карты
+    function RemoveEdge(objectId) {
+        var edge = edges[objectId];
+        Object.keys(edge.lines_).forEach(function(key) {
+            const item = edge.lines_[key];
+            item.setMap(null);
+        });
+        
+        delete edges[objectId];
+    }
+
+    // Добавление маршрута на карту
+    function AddRoute(objectId, color, width, nodesIds) {
+        var route = new Route(objectId, color, width, nodesIds);
+        routes[objectId] = route;
+    }
+    
+    // Удаление маршрута с карты
+    function RemoveRoute(objectId) {
+        
+    }
+
+    // Задание параметров для маршрута
+    function SetRouteParams(objectId, color, wdith) {
+        
+    }
+
+    // *************************
+    // END OF PUBLIC API
+    // *************************
+
+
     // Узел графа
-    function Node(objectId, point, title, bgColor) {
+    function Node(objectId, lat, lon, title, bgColor) {
         this.objectId_ = objectId;
-        this.point_ = point;
+        this.point_ = new google.maps.LatLng(lat, lon);;
         this.title_ = title;
         this.bgColor_ = bgColor;
         this.div_ = null;
+        this.edges_ = {};
 
         this.setMap(map);
     }
@@ -1656,7 +1728,7 @@
 
         textDiv.innerText = this.title_;
         circleDiv.appendChild(textDiv);
-       
+
         // Маркер располагается в плоскости теней маркеров
         var panes = this.getPanes();
         panes.overlayImage.appendChild(circleDiv);
@@ -1682,23 +1754,57 @@
         this.div_.style.left = koor.x - xShift + "px";
         this.div_.style.top = koor.y - yShift + "px";
     };
+    // Добавляем ребро к узлу
+    Node.prototype.addEdge = function (edgeId) {
+        this.edges_[edgeId] = edges[edgeId];
+    }
+    // Удаление ребра, соединяющего узел
+    Node.prototype.removeEdge = function(edgeId) {
+        delete this.edges_[edgeId];
+    }
 
-    // Линия
-    function DrawEdge(objectId, lat1, lng1, lat2, lng2, color, widthInPx) {
+    // Ребро графа
+    function Edge(objectId, originNodeId, destNodeId) {
         this.objectId_ = objectId;
-        this.color_ = color || "#000000";
-        this.widthInPx_ = widthInPx;
-        
-        var p1 = new google.maps.LatLng(lat1, lng1);
-        var p2 = new google.maps.LatLng(lat2, lng2);
-
-        var edge = new google.maps.Polyline({
-            path: [p1, p2],
-            strokeColor: color,
-            strokeWeight: widthInPx,
+        this.originNode_ = nodes[originNodeId];
+        this.destNode_ = nodes[destNodeId];
+        this.routes_ = {};
+        this.lines_ = {
+            "-1": new google.maps.Polyline({
+                path: [this.originNode_.point_, this.destNode_.point_],
+                strokeColor: "#808080",
+                strokeWeight: 1,
+                clickable: false,
+                map: map
+            })
+        };
+    }
+    // Добавление маршрута, проходящего через ребро
+    Edge.prototype.addRoute = function (routeId) {
+        this.routes_[routeId] = routes[routeId];
+        this.lines_[routeId] = new google.maps.Polyline({
+            path: [this.originNode_.point_, this.destNode_.point_],
+            strokeColor: "#000000",
+            strokeWeight: 3,
             clickable: false,
             map: map
         });
+
+        
+    }
+    // Удаление маршрута, проходящего через ребро
+    Edge.prototype.removeRoute = function(routeId) {
+        this.lines_[routeId].setMap(null);
+        delete this.lines_[routeId];
+        delete this.routes_[routeId];
     }
 
+    // Маршрут
+    function Route(routeId, color, width, nodesIds) {
+        this.routeId_ = routeId;
+        this.color_ = color;
+        this.width_ = width;
+        this.nodes_ = nodesIds.map(function (nodeId) { return nodes[nodeId]; });
+    }
+    
 </script>

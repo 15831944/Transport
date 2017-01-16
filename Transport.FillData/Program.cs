@@ -21,7 +21,11 @@ namespace Transport.FillData
         [STAThread]
         static void Main(string[] args)
         {
-            CountRoutesOnEachArea();
+            //CheckAllAreasInRoutesConnected(@"C:\Users\yaros\Dropbox\Маршруты\Маршрутная сеть\Маршруты_2017.txt");
+            //AddRoutes();
+            //CountRoutesOnEachArea();
+            //CountRoutesCharacteristicsInNetwork();
+            CheckAllAreasIsUsedInRoutes(@"C:\Users\yaros\Dropbox\Маршруты\Маршрутная сеть\Маршруты.txt");
             Console.WriteLine("Выполнено!");
             Console.ReadKey(true);
         }
@@ -31,10 +35,10 @@ namespace Transport.FillData
         /// </summary>
         private static void CountRoutesOnEachArea()
         {
-            var routes = File.ReadLines(@"C:\Users\Ярослав Мартынов\Dropbox\Маршруты\Маршруты_существующие.txt");
+            var routes = File.ReadLines(@"C:\Users\Ярослав Мартынов\Dropbox\Маршруты\Маршруты_2017.txt");
             var dirPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), @"Results");
             Directory.CreateDirectory(dirPath);
-            var writer = new StreamWriter(Path.Combine(dirPath, @"Маршрутов_в_зоне.txt"))
+            var writer = new StreamWriter(Path.Combine(dirPath, @"Маршрутов_в_зоне_2017.txt"))
             {
                 AutoFlush = true
             };
@@ -74,12 +78,12 @@ namespace Transport.FillData
         {
             var adjacencyMatrix = GetAdjacencyMatrix(0);
             var demandMatrix = GetDemandMatrixFromFile(@"C:\Users\Ярослав Мартынов\Documents\Visual Studio 2015\Projects\Transport\Transport.FillData\bin\Debug\Results\matrix.txt");
-            var routes = File.ReadLines(@"C:\Users\Ярослав Мартынов\Dropbox\Маршруты\Маршруты_существующие.txt");
+            var routes = File.ReadLines(@"C:\Users\Ярослав Мартынов\Dropbox\Маршруты\Маршруты_2017.txt");
             var routesChar = new List<RouteCharacteristics>();
 
             var dirPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), @"Results");
             Directory.CreateDirectory(dirPath);
-            var routeChrWriter = new StreamWriter(Path.Combine(dirPath, @"routesChr.txt"))
+            var routeChrWriter = new StreamWriter(Path.Combine(dirPath, @"Маршруты_характеристики_2017.txt"))
             {
                 AutoFlush = true
             };

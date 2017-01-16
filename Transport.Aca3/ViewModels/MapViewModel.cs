@@ -41,27 +41,27 @@ namespace Transport.Aca3.ViewModels
         public void DrawNetworkFromDb()
         {
             WebBrowser.InvokeScript("InitMap");
+            
+            //var rand = new Random();
 
-            var rand = new Random();
+            //foreach (var node in _dataAccessService.GetGraphNodes())
+            //{
+            //    var nodeId = node.Id;
+            //    // TODO: заменить на вызов одного метода с массивом в аргументах
+            //    WebBrowser.InvokeScript("DrawNode", nodeId, nodeId.ToString(), "#FFFF0000", node.Lat, node.Lon);
 
-            foreach (var node in _dataAccessService.GetGraphNodes())
-            {
-                var nodeId = node.Id;
-                // TODO: заменить на вызов одного метода с массивом в аргументах
-                WebBrowser.InvokeScript("DrawNode", nodeId, nodeId.ToString(), "#FFFF0000", node.Lat, node.Lon);
+            //    foreach (var edge in node.Edges)
+            //    {
+            //        var edgeId = rand.Next();
+            //        var p1Lat = edge.Source.Lat;
+            //        var p1Lon = edge.Source.Lon;
+            //        var p2Lat = edge.Dest.Lat;
+            //        var p2Lon = edge.Dest.Lon;
 
-                foreach (var edge in node.Edges)
-                {
-                    var edgeId = rand.Next();
-                    var p1Lat = edge.Source.Lat;
-                    var p1Lon = edge.Source.Lon;
-                    var p2Lat = edge.Dest.Lat;
-                    var p2Lon = edge.Dest.Lon;
-                    
-                    // TODO: заменить на вызов одного метода с массивом в аргументах
-                    WebBrowser.InvokeScript("DrawEdge", edgeId, p1Lat, p1Lon, p2Lat, p2Lon, "#000000", 1);
-                }
-            }
+            //        // TODO: заменить на вызов одного метода с массивом в аргументах
+            //        WebBrowser.InvokeScript("DrawEdge", edgeId, p1Lat, p1Lon, p2Lat, p2Lon, "#000000", 1);
+            //    }
+            //}
         }
 
         private string LoadMapHtmlResource()
