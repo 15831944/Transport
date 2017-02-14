@@ -25,9 +25,81 @@ namespace Transport.FillData
             //AddRoutes();
             //CountRoutesOnEachArea();
             //CountRoutesCharacteristicsInNetwork();
-            CheckAllAreasIsUsedInRoutes(@"C:\Users\yaros\Dropbox\Маршруты\Маршрутная сеть\Маршруты.txt");
+
+            //var idsToDelete = CheckAllAreasIsUsedInRoutes(@"C:\Users\yaros\Dropbox\Маршруты\Маршрутная сеть\Маршруты_2017.txt");
+            //DeleteRangeArea(idsToDelete);
+            //OrderAreaIds(@"C:\Users\yaros\Dropbox\Маршруты\Маршрутная сеть\Маршруты_2017.txt");
+            //GroupBuildingToAreas();
+            //CountPeopleInAreas();
+            //CountDepArrPcs();
+            //FindCorrespMatrix();
+            CountRoutesOnEachArea();
+            CountRoutesCharacteristicsInNetwork();
             Console.WriteLine("Выполнено!");
             Console.ReadKey(true);
+        }
+
+        private static void DeleteAreaById()
+        {
+            Console.WriteLine("Удаление зон по идентификаторам");
+            using (var db = new TransportContext())
+            {
+                int idForDel;
+                do
+                {
+                    Console.Write(Environment.NewLine + "Введите Id зоны для удаления: ");
+                    var input = Console.ReadLine();
+                    if (Int32.TryParse(input, out idForDel) && idForDel != 0)
+                    {
+                        var area = db.Areas.Find(idForDel);
+                        if (area == null) continue;
+                        Console.Write($"Удалить зону: \"{area.AreaId}. {area.Name}\" (Y/N)? ");
+                        if (Console.ReadKey().Key == ConsoleKey.Y)
+                        {
+                            var arToRemove =
+                                db.AreaRoutes.Where(ar => ar.OriginId == area.AreaId || ar.DestinationId == area.AreaId);
+                            db.AreaRoutes.RemoveRange(arToRemove);
+                            var bsToRemove = db.Busstops.Where(bs => bs.AreaId == area.AreaId);
+                            var buildingsToFree = db.Buildings.Where(b => b.AreaId == area.AreaId);
+                            db.Busstops.RemoveRange(bsToRemove);
+
+                            foreach (var b in buildingsToFree)
+                            {
+                                b.AreaId = null;
+                            }
+                            
+                            db.Areas.Remove(area);
+                            db.SaveChanges();
+                        }
+                    }
+                } while (idForDel != 0);
+            }
+        }
+
+        private static void DeleteRangeArea(long[] ids)
+        {
+            using (var db = new TransportContext())
+            {
+                foreach (var id in ids)
+                {
+                    var area = db.Areas.Find(id);
+
+                    var arToRemove =
+                                db.AreaRoutes.Where(ar => ar.OriginId == id || ar.DestinationId == id);
+                    db.AreaRoutes.RemoveRange(arToRemove);
+                    var bsToRemove = db.Busstops.Where(bs => bs.AreaId == id);
+                    var buildingsToFree = db.Buildings.Where(b => b.AreaId == id);
+                    db.Busstops.RemoveRange(bsToRemove);
+
+                    foreach (var b in buildingsToFree)
+                    {
+                        b.AreaId = null;
+                    }
+
+                    db.Areas.Remove(area);
+                    db.SaveChanges();
+                }
+            }
         }
 
         /// <summary>
@@ -35,10 +107,10 @@ namespace Transport.FillData
         /// </summary>
         private static void CountRoutesOnEachArea()
         {
-            var routes = File.ReadLines(@"C:\Users\Ярослав Мартынов\Dropbox\Маршруты\Маршруты_2017.txt");
             var dirPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), @"Results");
             Directory.CreateDirectory(dirPath);
-            var writer = new StreamWriter(Path.Combine(dirPath, @"Маршрутов_в_зоне_2017.txt"))
+            var routes = File.ReadLines(Path.Combine(dirPath, @"routes.txt"));
+            var writer = new StreamWriter(Path.Combine(dirPath, @"Маршрутов_в_зоне.txt"))
             {
                 AutoFlush = true
             };
@@ -76,14 +148,15 @@ namespace Transport.FillData
         /// </summary>
         private static void CountRoutesCharacteristicsInNetwork()
         {
-            var adjacencyMatrix = GetAdjacencyMatrix(0);
-            var demandMatrix = GetDemandMatrixFromFile(@"C:\Users\Ярослав Мартынов\Documents\Visual Studio 2015\Projects\Transport\Transport.FillData\bin\Debug\Results\matrix.txt");
-            var routes = File.ReadLines(@"C:\Users\Ярослав Мартынов\Dropbox\Маршруты\Маршруты_2017.txt");
-            var routesChar = new List<RouteCharacteristics>();
-
             var dirPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), @"Results");
             Directory.CreateDirectory(dirPath);
-            var routeChrWriter = new StreamWriter(Path.Combine(dirPath, @"Маршруты_характеристики_2017.txt"))
+            var adjacencyMatrix = GetAdjacencyMatrix(0);
+            var demandMatrix = GetDemandMatrixFromFile(Path.Combine(dirPath, @"matrix.txt"));
+            var routes = File.ReadLines(Path.Combine(dirPath, @"routes.txt"));
+            var routesChar = new List<RouteCharacteristics>();
+
+            
+            var routeChrWriter = new StreamWriter(Path.Combine(dirPath, @"Маршруты_характеристики.txt"))
             {
                 AutoFlush = true
             };
@@ -202,7 +275,7 @@ namespace Transport.FillData
         /// ВЫводит не используемые зоны
         /// </summary>
         /// <param name="routesFilePath">Путь к файлу с маршрутами</param>
-        private static void CheckAllAreasIsUsedInRoutes(string routesFilePath)
+        private static long[] CheckAllAreasIsUsedInRoutes(string routesFilePath)
         {
             var routes = File.ReadLines(routesFilePath);
 
@@ -239,6 +312,8 @@ namespace Transport.FillData
                 {
                     Console.WriteLine("Все зоны задействованы в маршрутах");
                 }
+
+                return areas.Select(a => a.AreaId).ToArray();
             }
         }
 
@@ -314,8 +389,17 @@ namespace Transport.FillData
             }
         }
 
-        private static void OrderAreaIds()
+        private static void OrderAreaIds(string routesFilePath)
         {
+            //var routes = File.ReadLines(routesFilePath);
+            var routes = new Dictionary<string, List<int>>();
+
+            foreach (var routeStr in File.ReadLines(routesFilePath))
+            {
+                var routeIds = routeStr.Split(new[] {';'}, StringSplitOptions.RemoveEmptyEntries);
+                routes.Add(routeIds.First(), routeIds.Skip(1).Select(int.Parse).ToList());
+            }
+
             using (var db = new TransportContext())
             {
                 var i = 0;
@@ -323,6 +407,8 @@ namespace Transport.FillData
                 {
                     if (area.AreaId != i)
                     {
+                        var oldAreaId = area.AreaId;
+
                         // сдвигаем
                         var areaRoutes =
                             db.AreaRoutes.Where(ar => ar.OriginId == area.AreaId || ar.DestinationId == area.AreaId)
@@ -363,9 +449,43 @@ namespace Transport.FillData
                         }
 
                         db.SaveChanges();
+
+                        foreach (var route in routes.Values)
+                        {
+                            for (var j = 0; j < route.Count; j++)
+                            {
+                                if (route[j] == oldAreaId)
+                                {
+                                    route[j] = i;
+                                }
+                            }
+                        }
                     }
 
                     i++;
+                }
+            }
+
+            var dirPath = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), @"Results");
+            var filePath = Path.Combine(dirPath, @"routes.txt");
+            Directory.CreateDirectory(dirPath);
+            var fileStream = new FileStream(filePath, FileMode.Create);
+            using (var writer = new StreamWriter(fileStream))
+            {
+                foreach (var route in routes)
+                {
+                    writer.Write(route.Key + ";");
+                    for (var j = 0; j < route.Value.Count; j++)
+                    {
+                        var id = route.Value[j];
+                        writer.Write(id);
+                        if (j < route.Value.Count - 1)
+                        {
+                            writer.Write(";");
+                        }
+                    }
+
+                    writer.Write(Environment.NewLine);
                 }
             }
         }
@@ -774,11 +894,13 @@ namespace Transport.FillData
         /// </summary>
         private static void GroupBuildingToAreas()
         {
+            SqlServerTypes.Utilities.LoadNativeAssemblies(AppDomain.CurrentDomain.BaseDirectory);
+
             using (var db = new TransportContext())
             {
                 // ищем ближайшие зоны для каждого здания
                 var sw = Stopwatch.StartNew();
-                var buildings = db.Buildings.Where(b => b.AreaId == null);
+                var buildings = db.Buildings;
                 var pb = new ProgressBar(buildings.Count() - 1, "Группировка зданий по зонам... ");
                 var p = 0;
                 foreach (var building in buildings)
